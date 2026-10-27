@@ -1,150 +1,182 @@
 "use strict";
 
 const PAGE_PATTERNS = [
-  /([?&])page=(\d+)/i,
-  /([?&])p=(\d+)/i,
-  /\/page\/(\d+)/i,
-  /#page=(\d+)/i
+  {
+    regex: /([?&])page=(\d+)/i,
+    build: (url, page) => url.replace(/([?&])page=\d+/i, `$1page=${page}`)
+  },
+  {
+    regex: /([?&])p=(\d+)/i,
+    build: (url, page) => url.replace(/([?&])p=\d+/i, `$1p=${page}`)
+  },
+  {
+    regex: /\/page\/(\d+)/i,
+    build: (url, page) => url.replace(/\/page\/\d+/i, `/page/${page}`)
+  },
+  {
+    regex: /#page=(\d+)/i,
+    build: (url, page) => url.replace(/#page=\d+/i, `#page=${page}`)
+  }
 ];
 
-function getActiveBrowser() {
-  return window.gBrowser || window.browser?.gBrowser;
+const TOAST_ID = "zen-page-skip-toast";
+const TOAST_DURATION_MS = 1800;
+
+function getActiveTab() {
+  return window.gBrowser?.selectedTab ?? null;
 }
 
-function parsePage(url) {
-  for (const pattern of PAGE_PATTERNS) {
-    const match = url.match(pattern);
+function getCurrentUrl() {
+  return getActiveTab()?.linkedBrowser?.currentURI?.spec ?? null;
+}
 
-    if (!match) continue;
+function findPage(url) {
+  for (const item of PAGE_PATTERNS) {
+    const match = url.match(item.regex);
 
-    return {
-      pattern,
-      current: Number.parseInt(match[2], 10)
-    };
+    if (match) {
+      return {
+        item,
+        currentPage: Number.parseInt(match[2], 10)
+      };
+    }
   }
 
   return null;
 }
 
-function buildNextUrl(url, match, direction) {
-  const nextPage = match.current + direction;
-
-  if (nextPage < 1) return null;
-
-  if (match.pattern.source.startsWith("([?&])page=")) {
-    return url.replace(/([?&])page=(\d+)/i, `$1page=${nextPage}`);
-  }
-
-  if (match.pattern.source.startsWith("([?&])p=")) {
-    return url.replace(/([?&])p=(\d+)/i, `$1p=${nextPage}`);
-  }
-
-  if (match.pattern.source.startsWith("\\/page\\/")) {
-    return url.replace(/\/page\/(\d+)/i, `/page/${nextPage}`);
-  }
-
-  return url.replace(/#page=(\d+)/i, `#page=${nextPage}`);
+function buildUrl(url, item, page) {
+  const nextUrl = item.build(url, page);
+  return nextUrl === url ? null : nextUrl;
 }
 
 function showToast(message) {
   try {
     const zenUI = window.gZenUIManager;
 
-    if (zenUI?.showToast) {
+    if (typeof zenUI?.showToast === "function") {
       zenUI.showToast({ label: message });
       return;
     }
+
+    if (typeof zenUI?.toast === "function") {
+      zenUI.toast(message);
+      return;
+    }
   } catch (error) {
-    console.warn("[Zen Page Skip] Native Zen toast failed:", error);
+    console.warn("[Zen Page Skip] Zen toast unavailable:", error);
   }
 
   try {
-    const browser = getActiveBrowser();
-    const notificationBox = browser.getNotificationBox();
-    const notification = notificationBox.appendNotification(
-      "zen-page-skip-toast",
-      {
-        label: message,
-        priority: notificationBox.PRIORITY_INFO_MEDIUM
-      }
-    );
+    const notificationBox = window.gBrowser.getNotificationBox();
+    notificationBox.getNotificationWithValue(TOAST_ID)?.close();
 
-    setTimeout(() => notification?.close(), 2000);
+    const notification = notificationBox.appendNotification(TOAST_ID, {
+      label: message,
+      priority: notificationBox.PRIORITY_INFO_MEDIUM
+    });
+
+    window.setTimeout(() => notification?.close(), TOAST_DURATION_MS);
   } catch (error) {
-    console.warn("[Zen Page Skip] Notification fallback failed:", error);
+    console.warn("[Zen Page Skip] Notification unavailable:", error);
+  }
+}
+
+function navigate(tab, url) {
+  const browser = tab.linkedBrowser;
+  const principal = Services.scriptSecurityManager.getSystemPrincipal();
+
+  try {
+    browser.loadURI(Services.io.newURI(url), {
+      triggeringPrincipal: principal
+    });
+  } catch (error) {
+    browser.fixupAndLoadURIString(url, {
+      triggeringPrincipal: principal
+    });
   }
 }
 
 function jump(direction) {
-  const browser = getActiveBrowser();
-  const tab = browser?.selectedTab;
-  const url = tab?.linkedBrowser?.currentURI?.spec;
+  const tab = getActiveTab();
+  const url = getCurrentUrl();
 
-  if (!url) return;
+  if (!tab || !url) {
+    showToast("No active page");
+    return;
+  }
 
-  const match = parsePage(url);
+  const found = findPage(url);
 
-  if (!match) {
+  if (!found) {
     showToast("No numbered page found");
     return;
   }
 
-  const nextUrl = buildNextUrl(url, match, direction);
+  const nextPage = found.currentPage + direction;
 
-  if (!nextUrl) {
-    showToast(direction < 0 ? "Already on page 1" : "Cannot go further back");
+  if (nextPage < 1) {
+    showToast("Already on page 1");
     return;
   }
 
-  tab.linkedBrowser.loadURI(Services.io.newURI(nextUrl), {
-    triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()
-  });
+  const nextUrl = buildUrl(url, found.item, nextPage);
 
-  showToast(`Jumped to page ${match.current + direction}`);
+  if (!nextUrl) {
+    showToast("Could not build page URL");
+    return;
+  }
+
+  navigate(tab, nextUrl);
+  showToast(`Jumped to page ${nextPage}`);
 }
 
-function shouldTrigger(event, shortcut) {
-  if (!shortcut) return false;
+function isEditable(target) {
+  const tag = target?.tagName?.toLowerCase();
 
-  const parts = shortcut.split("+").map((part) => part.trim().toLowerCase());
+  return (
+    tag === "input" ||
+    tag === "textarea" ||
+    tag === "select" ||
+    target?.isContentEditable === true
+  );
+}
+
+function matches(event, shortcut) {
+  const parts = shortcut
+    .split("+")
+    .map((part) => part.trim().toLowerCase())
+    .filter(Boolean);
+
   const key = parts.at(-1);
-  const needsAlt = parts.includes("alt");
-  const needsCtrl = parts.includes("ctrl") || parts.includes("cmd");
-  const needsShift = parts.includes("shift");
+  const wantsAlt = parts.includes("alt");
+  const wantsCtrl = parts.includes("ctrl") || parts.includes("cmd");
+  const wantsShift = parts.includes("shift");
 
   const keyMatches =
-    event.key.toLowerCase() === key ||
+    event.key?.toLowerCase() === key ||
     (key === "]" && event.code === "BracketRight") ||
     (key === "[" && event.code === "BracketLeft");
 
   return (
     keyMatches &&
-    event.altKey === needsAlt &&
-    (event.ctrlKey || event.metaKey) === needsCtrl &&
-    event.shiftKey === needsShift
+    event.altKey === wantsAlt &&
+    (event.ctrlKey || event.metaKey) === wantsCtrl &&
+    event.shiftKey === wantsShift
   );
 }
 
 function onKeyDown(event) {
-  const target = event.target;
+  if (isEditable(event.target)) return;
 
-  if (
-    target instanceof Ci.nsIDOMHTMLElement &&
-    (target.tagName === "INPUT" ||
-      target.tagName === "TEXTAREA" ||
-      target.isContentEditable)
-  ) {
-    return;
-  }
-
-  const nextShortcut = "Alt+]";
-  const previousShortcut = "Alt+[";
-
-  if (shouldTrigger(event, nextShortcut)) {
+  if (matches(event, "Alt+]")) {
     event.preventDefault();
     event.stopPropagation();
     jump(1);
-  } else if (shouldTrigger(event, previousShortcut)) {
+    return;
+  }
+
+  if (matches(event, "Alt+[")) {
     event.preventDefault();
     event.stopPropagation();
     jump(-1);
