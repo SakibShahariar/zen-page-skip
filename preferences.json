@@ -3,16 +3,16 @@
     {
       "name": "zen-page-skip.next-shortcut",
       "title": "Next page shortcut",
-      "description": "Key combination used to go to the next page.",
+      "description": "Key combination used to go to the next page. Examples: Alt+], Ctrl+Alt+Right, Alt+N.",
       "type": "string",
-      "default": "Alt+]"
+      "defaultValue": "Alt+]"
     },
     {
       "name": "zen-page-skip.previous-shortcut",
       "title": "Previous page shortcut",
-      "description": "Key combination used to go to the previous page.",
+      "description": "Key combination used to go to the previous page. Examples: Alt+[, Ctrl+Alt+Left, Alt+P.",
       "type": "string",
-      "default": "Alt+["
+      "defaultValue": "Alt+["
     }
   ]
 }

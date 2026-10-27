@@ -1,42 +1,55 @@
 # Zen Page Skip
 
-A Sine mod for [Zen Browser](https://zen-browser.app) that adds keyboard shortcuts to jump to the next or previous numbered page.
-
-For example, on:
-
-```text
-https://example.com/search?q=zen&page=3
-```
-
-pressing **Next Page** opens:
-
-```text
-https://example.com/search?q=zen&page=4
-```
+A Sine mod for [Zen Browser](https://zen-browser.app) that adds keyboard shortcuts to jump to the next or previous page.
 
 ## Shortcuts
 
-| Action | Default shortcut |
-|---|---|
-| Next page | `Alt+]` |
-| Previous page | `Alt+[` |
+| Action | Default shortcut | Preference |
+|---|---|---|
+| Next page | `Alt+]` | `zen-page-skip.next-shortcut` |
+| Previous page | `Alt+[` | `zen-page-skip.previous-shortcut` |
 
-## Supported URL formats
+Change these in **Settings → Sine Mods → Zen Page Skip**, or in `about:config`.
 
-- `?page=3`
-- `?p=3`
-- `/page/3/`
-- `#page=3`
+Supported shortcut formats include:
+
+- `Alt+]`
+- `Alt+[`
+- `Ctrl+Alt+Right`
+- `Ctrl+Alt+Left`
+- `Alt+N`
+- `Alt+P`
+
+## How it works
+
+Zen Page Skip first looks for the website’s own pagination control and clicks it. This works with many URL styles, including pages that do not put a page number in the URL.
+
+It looks for:
+
+- `rel="next"` and `rel="prev"` links
+- `aria-label` or `title` values such as “Next page” and “Previous page”
+- Visible text such as `Next`, `Previous`, `Prev`, `Older`, `Newer`
+- Arrow controls such as `›`, `»`, `→`, `‹`, `«`, and `←`
+- Controls inside pagination containers
+
+If no pagination control is found, it falls back to changing a numbered URL:
+
+- `?page=3` → `?page=4`
+- `?p=3` → `?p=4`
+- `/page/3/` → `/page/4/`
+- `#page=3` → `#page=4`
+
+If neither method works, it shows a toast such as **“No next page found”** or **“No previous page found”**.
 
 ## Toast messages
 
-The mod shows an in-browser toast when possible:
+- `Going to next page`
+- `Going to previous page`
+- `No next page found`
+- `No previous page found`
+- `No active page`
 
-- `Jumped to page 4`
-- `Already on page 1`
-- `No numbered page found`
-
-It first tries Zen’s native toast system. If that API is unavailable in your Zen version, it falls back to Firefox’s in-window notification bar.
+The mod tries Zen’s native toast system first. If that API is unavailable, it uses Firefox’s in-window notification bar.
 
 ## Install
 
@@ -49,13 +62,13 @@ It first tries Zen’s native toast system. If that API is unavailable in your Z
    ```
 
 4. Install **Zen Page Skip**.
-5. Restart Zen or clear its startup cache if the mod does not load immediately.
+5. Restart Zen or clear its startup cache if needed.
 
 ## Notes
 
-- This mod changes only the page number in the current URL.
-- It cannot know a website’s final page, so it will attempt the next URL even on the last page.
-- If a site uses another pagination format, add a pattern to `PAGE_PATTERNS` in `script.js`.
+- The mod avoids inputs, text areas, selects, and content-editable fields.
+- It does not treat every “More” link as pagination.
+- It cannot detect pages that use custom pagination with no accessible label, recognizable text, or pagination container.
 
 ## License
 
