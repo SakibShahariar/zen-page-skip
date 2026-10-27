@@ -1,0 +1,8 @@
+{
+  "name": "Zen Page Skip",
+  "description": "Keyboard shortcuts to jump to the next or previous numbered page in Zen Browser.",
+  "version": "0.1.0",
+  "author": "Sakib Shahariar Shimanto",
+  "homepage": "https://github.com/SakibShahariar/zen-page-skip",
+  "update_url": "https://raw.githubusercontent.com/SakibShahariar/zen-page-skip/main/theme.json"
+}

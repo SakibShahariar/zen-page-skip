@@ -1,0 +1,18 @@
+{
+  "preferences": [
+    {
+      "name": "zen-page-skip.next-shortcut",
+      "title": "Next page shortcut",
+      "description": "Key combination used to go to the next page.",
+      "type": "string",
+      "default": "Alt+]"
+    },
+    {
+      "name": "zen-page-skip.previous-shortcut",
+      "title": "Previous page shortcut",
+      "description": "Key combination used to go to the previous page.",
+      "type": "string",
+      "default": "Alt+["
+    }
+  ]
+}
