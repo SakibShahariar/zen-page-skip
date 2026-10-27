@@ -1,5 +1,9 @@
 "use strict";
 
+const PREF_BRANCH = "zen-page-skip.";
+const DEFAULT_NEXT_SHORTCUT = "Alt+]";
+const DEFAULT_PREVIOUS_SHORTCUT = "Alt+[";
+
 const NEXT_TEXT = ["next", "next page", "go to next page", "older", "older posts", "forward", "continue"];
 const PREVIOUS_TEXT = ["previous", "prev", "previous page", "go to previous page", "newer", "newer posts", "back"];
 const NEXT_SYMBOLS = [">", "»", "›", "→"];
@@ -14,6 +18,23 @@ const PAGE_PATTERNS = [
 
 const TOAST_ID = "zen-page-skip-toast";
 const TOAST_DURATION_MS = 1800;
+
+function getShortcut(name, fallback) {
+  try {
+    const value = Services.prefs.getStringPref(PREF_BRANCH + name, "");
+    return value.trim() || fallback;
+  } catch (error) {
+    console.warn(`[Zen Page Skip] Could not read preference ${name}:`, error);
+    return fallback;
+  }
+}
+
+function getShortcuts() {
+  return {
+    next: getShortcut("next-shortcut", DEFAULT_NEXT_SHORTCUT),
+    previous: getShortcut("previous-shortcut", DEFAULT_PREVIOUS_SHORTCUT)
+  };
+}
 
 function getActiveTab() {
   return window.gBrowser?.selectedTab ?? null;
@@ -166,6 +187,8 @@ function isEditable(target) {
 }
 
 function matches(event, shortcut) {
+  if (!shortcut) return false;
+
   const parts = shortcut.split("+").map((part) => part.trim().toLowerCase()).filter(Boolean);
   const key = parts.at(-1);
   const wantsAlt = parts.includes("alt");
@@ -179,14 +202,16 @@ function matches(event, shortcut) {
 function onKeyDown(event) {
   if (isEditable(event.target)) return;
 
-  if (matches(event, "Alt+]")) {
+  const shortcuts = getShortcuts();
+
+  if (matches(event, shortcuts.next)) {
     event.preventDefault();
     event.stopPropagation();
     jump(1);
     return;
   }
 
-  if (matches(event, "Alt+[")) {
+  if (matches(event, shortcuts.previous)) {
     event.preventDefault();
     event.stopPropagation();
     jump(-1);
