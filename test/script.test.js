@@ -483,3 +483,23 @@ test("site action url skips controls while click mode refuses URL fallback",()=>
   vm.runInContext("jump(1)",context);
   assert.equal(loaded,null);
 });
+
+test("uses the live document and URL after SPA route changes and history traversal",()=>{
+  const first=el({text:"Next",attrs:{href:"/page/2"},pagination:true});
+  const second=el({text:"Previous",attrs:{href:"/page/1"},pagination:true});
+  const browser={currentURI:{spec:"https://example.test/page/1"},contentDocument:{querySelectorAll:()=>[first]}};
+  const {context}=load({gBrowser:{selectedTab:{linkedBrowser:browser}}});
+  assert.equal(vm.runInContext("getCurrentUrl()",context),"https://example.test/page/1");
+  assert.equal(vm.runInContext("findPaginationControl(1)",context),first);
+
+  // Simulate pushState updating the current URI and the SPA replacing its controls.
+  browser.currentURI.spec="https://example.test/page/2";
+  browser.contentDocument={querySelectorAll:()=>[second]};
+  assert.equal(vm.runInContext("getCurrentUrl()",context),"https://example.test/page/2");
+  assert.equal(vm.runInContext("findPaginationControl(-1)",context),second);
+
+  // Simulate browser back restoring the prior route and its live DOM.
+  browser.currentURI.spec="https://example.test/page/1";
+  browser.contentDocument={querySelectorAll:()=>[first]};
+  assert.equal(vm.runInContext("findPaginationControl(1)",context),first);
+});

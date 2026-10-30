@@ -63,6 +63,10 @@ If neither method works, it shows a toast such as **“No next page found”** o
 
 Feedback messages use Firefox’s in-window notification bar. Disable them or change their duration in Sine settings.
 
+## SPA and browser history
+
+The mod does not cache page documents or pagination candidates. Each shortcut reads the selected tab’s current URI and content document again, so same-document route changes and browser back/forward updates are reflected when the site updates its URL and DOM. It does not intercept or replace a site’s own history/router APIs.
+
 ## Compatibility
 
 Designed for Zen Browser with Sine. Navigation APIs are feature-detected at runtime; missing URI-navigation methods fail safely with a clear message instead of throwing. Other Firefox-based browsers are best-effort and are not claimed as runtime-verified.
