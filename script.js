@@ -16,6 +16,18 @@ const PAGE_PATTERNS = [
   { regex: /#page=(\d+)/i, build: (url, page) => url.replace(/#page=\d+/i, `#page=${page}`) }
 ];
 
+function getNumberedPageUrl(url, direction) {
+  for (const pattern of PAGE_PATTERNS) {
+    const match = url.match(pattern.regex);
+    if (!match) continue;
+    const nextPage = Number.parseInt(match[2], 10) + direction;
+    if (!Number.isSafeInteger(nextPage) || nextPage < 1) return null;
+    const candidate = pattern.build(url, nextPage);
+    return candidate !== url ? candidate : null;
+  }
+  return null;
+}
+
 const TOAST_ID = "zen-page-skip-toast";
 const TOAST_DURATION_MS = 1800;
 
@@ -45,11 +57,18 @@ function getCurrentUrl() {
 }
 
 function getPageDocument() {
-  return getActiveTab()?.linkedBrowser?.contentDocument ?? null;
+  try {
+    return getActiveTab()?.linkedBrowser?.contentDocument ?? null;
+  } catch (error) {
+    return null;
+  }
 }
 
 function normalizedText(element) {
-  return (element?.getAttribute("aria-label") || element?.getAttribute("title") || element?.textContent || "").trim().toLowerCase();
+  return (element?.getAttribute("aria-label") || element?.getAttribute("title") || element?.textContent || "")
+    .replace(/\\s+/g, " ")
+    .trim()
+    .toLowerCase();
 }
 
 function hasRel(element, direction) {
@@ -58,15 +77,48 @@ function hasRel(element, direction) {
 }
 
 function matchesWords(text, words) {
-  return words.some((word) => text === word || text.includes(word));
+  return words.includes(text);
 }
 
 function isDisabled(element) {
-  return element.getAttribute("aria-disabled") === "true" || element.hasAttribute("disabled") || element.classList.contains("disabled") || element.getAttribute("aria-current") === "page";
+  return element.hasAttribute("disabled") ||
+    element.getAttribute("aria-disabled") === "true" ||
+    element.getAttribute("aria-current") === "page" ||
+    element.classList?.contains("disabled") === true;
 }
 
 function isInPaginationContext(element) {
   return Boolean(element.closest('nav, [role="navigation"], [class*="pagination"], [id*="pagination"], [class*="pager"], [id*="pager"]'));
+}
+
+function isSafeNavigationControl(element) {
+  const tag = element.tagName?.toLowerCase();
+  if (!["a", "button"].includes(tag) && element.getAttribute("role") !== "button") return false;
+  if (isDisabled(element) || element.hasAttribute("download")) return false;
+  if (element.closest("form") || element.getAttribute("aria-haspopup") || element.getAttribute("aria-expanded") === "true") return false;
+  if (["menuitem", "menuitemcheckbox", "menuitemradio"].includes(element.getAttribute("role"))) return false;
+
+  if (tag === "a") {
+    const href = element.getAttribute("href")?.trim();
+    return Boolean(href) && !/^(?:javascript|data|vbscript):/i.test(href);
+  }
+
+  return isInPaginationContext(element) && element.getAttribute("type")?.toLowerCase() !== "submit";
+}
+
+function findRelPaginationUrl(direction, document, currentUrl) {
+  try {
+    for (const link of Array.from(document.querySelectorAll('link[rel]'))) {
+      if (!hasRel(link, direction) || isDisabled(link)) continue;
+      const href = link.getAttribute("href")?.trim();
+      if (!href || /^(?:javascript|data|vbscript):/i.test(href)) continue;
+      const target = new URL(href, document.baseURI || currentUrl);
+      if (["http:", "https:"].includes(target.protocol) && target.href !== currentUrl) return target.href;
+    }
+  } catch (error) {
+    return null;
+  }
+  return null;
 }
 
 function findPaginationControl(direction) {
@@ -79,21 +131,28 @@ function findPaginationControl(direction) {
   const scored = [];
 
   for (const element of candidates) {
-    if (isDisabled(element)) continue;
+    if (!isSafeNavigationControl(element)) continue;
 
     const text = normalizedText(element);
-    let score = 0;
-
-    if (hasRel(element, direction)) score += 100;
-    if (matchesWords(text, words)) score += text.includes("page") ? 60 : 40;
-    if (symbols.includes(text)) score += 30;
-    if (isInPaginationContext(element)) score += 25;
-
+    const exactLabel = matchesWords(text, words);
+    const symbolLabel = symbols.includes(text);
+    const inPagination = isInPaginationContext(element);
+    const rel = hasRel(element, direction);
     const metadata = `${element.className || ""} ${element.id || ""}`.toLowerCase();
-    if (metadata.includes(direction === 1 ? "next" : "prev")) score += 20;
-    if (element.tagName === "A" && element.getAttribute("href")) score += 10;
+    const directionalMetadata = new RegExp(direction === 1 ? "(?:^|[-_ ])next(?:$|[-_ ])" : "(?:^|[-_ ])(?:prev|previous)(?:$|[-_ ])").test(metadata);
+    const specificLabel = text.includes("page");
 
-    if (score >= 40) scored.push({ element, score });
+    if (!rel && !inPagination && !directionalMetadata && !specificLabel) continue;
+    if (!exactLabel && !symbolLabel && !rel && !directionalMetadata) continue;
+
+    let score = 0;
+    if (rel) score += 120;
+    if (exactLabel) score += specificLabel ? 70 : 45;
+    if (symbolLabel) score += 35;
+    if (inPagination) score += 35;
+    if (directionalMetadata) score += 25;
+    if (element.tagName === "A" && element.getAttribute("href")) score += 10;
+    if (score >= 70) scored.push({ element, score });
   }
 
   scored.sort((a, b) => b.score - a.score);
@@ -147,6 +206,16 @@ function jump(direction) {
     return;
   }
 
+  const document = getPageDocument();
+  if (document) {
+    const relUrl = findRelPaginationUrl(direction, document, url);
+    if (relUrl) {
+      navigate(tab, relUrl);
+      showToast(direction === 1 ? "Going to next page" : "Going to previous page");
+      return;
+    }
+  }
+
   const control = findPaginationControl(direction);
 
   if (control) {
@@ -156,21 +225,7 @@ function jump(direction) {
     return;
   }
 
-  let nextUrl = null;
-
-  for (const item of PAGE_PATTERNS) {
-    const match = url.match(item.regex);
-    if (!match) continue;
-
-    const nextPage = Number.parseInt(match[2], 10) + direction;
-    if (nextPage < 1) break;
-
-    const candidate = item.build(url, nextPage);
-    if (candidate !== url) {
-      nextUrl = candidate;
-      break;
-    }
-  }
+  const nextUrl = getNumberedPageUrl(url, direction);
 
   if (nextUrl) {
     navigate(tab, nextUrl);
@@ -182,25 +237,59 @@ function jump(direction) {
 }
 
 function isEditable(target) {
+  if (target?.ownerDocument?.designMode?.toLowerCase() === "on" || target?.isContentEditable === true) return true;
+  try {
+    if (target?.closest?.('[contenteditable]:not([contenteditable="false"])')) return true;
+  } catch (error) {
+    return true;
+  }
   const tag = target?.tagName?.toLowerCase();
-  return tag === "input" || tag === "textarea" || tag === "select" || target?.isContentEditable === true;
+  return tag === "input" || tag === "textarea" || tag === "select";
+}
+
+function parseShortcut(shortcut) {
+  if (typeof shortcut !== "string" || !shortcut.trim()) return null;
+  const parts = shortcut.split("+").map((part) => part.trim().toLowerCase());
+  if (parts.some((part) => !part)) return null;
+
+  const modifiers = {
+    ctrl: ["ctrl", "control"],
+    alt: ["alt", "option"],
+    shift: ["shift"],
+    meta: ["meta", "cmd", "command", "super", "win", "windows"]
+  };
+  const parsed = { ctrl: false, alt: false, shift: false, meta: false, key: "" };
+  for (const part of parts.slice(0, -1)) {
+    const modifier = Object.keys(modifiers).find((name) => modifiers[name].includes(part));
+    if (!modifier || parsed[modifier]) return null;
+    parsed[modifier] = true;
+  }
+
+  const aliases = {
+    esc: "escape", return: "enter", spacebar: " ", space: " ",
+    left: "arrowleft", right: "arrowright", up: "arrowup", down: "arrowdown"
+  };
+  parsed.key = aliases[parts.at(-1)] || parts.at(-1);
+  if (["ctrl", "control", "alt", "option", "shift", "meta", "cmd", "command", "super", "win", "windows"].includes(parsed.key)) return null;
+  return parsed;
 }
 
 function matches(event, shortcut) {
-  if (!shortcut) return false;
-
-  const parts = shortcut.split("+").map((part) => part.trim().toLowerCase()).filter(Boolean);
-  const key = parts.at(-1);
-  const wantsAlt = parts.includes("alt");
-  const wantsCtrl = parts.includes("ctrl") || parts.includes("cmd");
-  const wantsShift = parts.includes("shift");
-  const keyMatches = event.key?.toLowerCase() === key || (key === "]" && event.code === "BracketRight") || (key === "[" && event.code === "BracketLeft");
-
-  return keyMatches && event.altKey === wantsAlt && (event.ctrlKey || event.metaKey) === wantsCtrl && event.shiftKey === wantsShift;
+  const parsed = parseShortcut(shortcut);
+  if (!parsed) return false;
+  const eventKey = event.key?.toLowerCase();
+  const keyMatches = eventKey === parsed.key ||
+    (parsed.key === "]" && event.code === "BracketRight") ||
+    (parsed.key === "[" && event.code === "BracketLeft");
+  return keyMatches &&
+    event.altKey === parsed.alt &&
+    event.ctrlKey === parsed.ctrl &&
+    event.metaKey === parsed.meta &&
+    event.shiftKey === parsed.shift;
 }
 
 function onKeyDown(event) {
-  if (isEditable(event.target)) return;
+  if (event.isComposing || event.repeat || isEditable(event.target)) return;
 
   const shortcuts = getShortcuts();
 

@@ -11,28 +11,22 @@ A Sine mod for [Zen Browser](https://zen-browser.app) that adds keyboard shortcu
 
 Change these in **Settings → Sine Mods → Zen Page Skip**, or in `about:config`.
 
-Supported shortcut formats include:
+Shortcut preferences accept modifier combinations such as:
 
-- `Alt+]`
-- `Alt+[`
-- `Ctrl+Alt+Right`
-- `Ctrl+Alt+Left`
-- `Alt+N`
-- `Alt+P`
+- `Alt+]` and `Alt+[`
+- `Ctrl+Alt+Right` and `Ctrl+Alt+Left`
+- `Cmd+Alt+Right` and `Cmd+Alt+Left`
+- `Super+N`, `Meta+N`, `Alt+N`, and `Alt+P`
+
+`Ctrl` and `Cmd`/`Meta`/`Super` are distinct modifiers. `Option` is an alias for `Alt`.
 
 ## How it works
 
-Zen Page Skip first looks for the website’s own pagination control and clicks it. This works with many URL styles, including pages that do not put a page number in the URL.
+Zen Page Skip first checks for a page-navigation hint in the document head (`<link rel="next">` or `<link rel="prev">`). It then looks for the website’s own pagination control and clicks it. This works with many URL styles, including pages that do not put a page number in the URL.
 
-It looks for:
+Visible controls are matched using pagination labels, directional metadata, and pagination containers. Form controls, submit buttons, menu controls, and ambiguous generic links are ignored.
 
-- `rel="next"` and `rel="prev"` links
-- `aria-label` or `title` values such as “Next page” and “Previous page”
-- Visible text such as `Next`, `Previous`, `Prev`, `Older`, `Newer`
-- Arrow controls such as `›`, `»`, `→`, `‹`, `«`, and `←`
-- Controls inside pagination containers
-
-If no pagination control is found, it falls back to changing a numbered URL:
+If no usable pagination control is found, it falls back to changing a numbered URL:
 
 - `?page=3` → `?page=4`
 - `?p=3` → `?p=4`
@@ -64,11 +58,20 @@ The mod tries Zen’s native toast system first. If that API is unavailable, it 
 4. Install **Zen Page Skip**.
 5. Restart Zen or clear its startup cache if needed.
 
+## Development
+
+Run the automated tests with Node.js:
+
+```sh
+node --check script.js
+node --test
+```
+
 ## Notes
 
-- The mod avoids inputs, text areas, selects, and content-editable fields.
-- It does not treat every “More” link as pagination.
-- It cannot detect pages that use custom pagination with no accessible label, recognizable text, or pagination container.
+- Shortcut auto-repeat and IME composition events are ignored.
+- The mod avoids inputs, text areas, selects, and content-editable regions.
+- It cannot detect custom pagination with no accessible label, recognizable metadata, or pagination container.
 
 ## License
 
