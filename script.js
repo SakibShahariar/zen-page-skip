@@ -17,6 +17,50 @@ const PAGE_PATTERNS = [
   { regex: /#page=(\d+)/i, build: (url, page) => url.replace(/#page=\d+/i, `#page=${page}`) }
 ];
 
+function getPageNumberFromUrl(url) {
+  for (const pattern of PAGE_PATTERNS) {
+    const match = url.match(pattern.regex);
+    if (match) return Number.parseInt(match[2], 10);
+  }
+  return getCustomPageTemplate(url)?.page ?? null;
+}
+
+function validateNumberedFallback(currentUrl, targetUrl, document) {
+  if (!document || typeof document.querySelectorAll !== "function") {
+    return { valid: true, reason: "document-unavailable", observedPages: [] };
+  }
+  const currentPage = getPageNumberFromUrl(currentUrl);
+  const targetPage = getPageNumberFromUrl(targetUrl);
+  if (currentPage === null || targetPage === null) {
+    return { valid: true, reason: "page-number-unavailable", observedPages: [] };
+  }
+
+  const observedPages = new Set();
+  try {
+    const origin = new URL(currentUrl).origin;
+    for (const anchor of document.querySelectorAll("a[href]")) {
+      const href = anchor.href || anchor.getAttribute("href");
+      if (!href) continue;
+      const candidate = new URL(href, currentUrl);
+      if (candidate.origin !== origin) continue;
+      const page = getPageNumberFromUrl(candidate.href);
+      if (page !== null) observedPages.add(page);
+    }
+  } catch (error) {
+    debugLog("numbered-fallback-validation-unavailable", {});
+    return { valid: true, reason: "validation-error", observedPages: [] };
+  }
+
+  if (observedPages.size === 0) {
+    return { valid: true, reason: "no-observed-page-links", observedPages: [] };
+  }
+  return {
+    valid: observedPages.has(targetPage),
+    reason: observedPages.has(targetPage) ? "target-observed" : "target-not-observed",
+    observedPages: Array.from(observedPages).sort((a, b) => a - b)
+  };
+}
+
 function getNumberedPageUrl(url, direction) {
   for (const pattern of PAGE_PATTERNS) {
     const match = url.match(pattern.regex);
@@ -824,6 +868,12 @@ function jump(direction) {
   const nextUrl = getNumberedPageUrl(url, direction);
 
   if (nextUrl) {
+    const validation = validateNumberedFallback(url, nextUrl, document);
+    if (!validation.valid) {
+      debugLog("numbered-fallback-rejected", validation);
+      showToast("No further numbered page detected");
+      return;
+    }
     const targetDescription = describeNavigationTarget(nextUrl);
     if (!confirmNavigation(targetDescription)) {
       showToast("Navigation cancelled");

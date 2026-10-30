@@ -503,3 +503,30 @@ test("uses the live document and URL after SPA route changes and history travers
   browser.contentDocument={querySelectorAll:()=>[first]};
   assert.equal(vm.runInContext("findPaginationControl(1)",context),first);
 });
+
+test("validates numbered URL fallbacks against observed same-origin pages",()=>{
+  const {context}=load();
+  const doc=(hrefs)=>({querySelectorAll:()=>hrefs.map(href=>({href,getAttribute:()=>href}))});
+  const valid=vm.runInContext("validateNumberedFallback(current,target,document)",Object.assign(context,{
+    current:"https://example.test/?page=2",
+    target:"https://example.test/?page=3",
+    document:doc(["https://example.test/?page=1","https://example.test/?page=3"])
+  }));
+  assert.equal(valid.valid,true);
+  assert.deepEqual(JSON.parse(JSON.stringify(valid.observedPages)),[1,3]);
+
+  const invalid=vm.runInContext("validateNumberedFallback(current,target,document)",Object.assign(context,{
+    current:"https://example.test/?page=3",
+    target:"https://example.test/?page=4",
+    document:doc(["https://example.test/?page=1","https://example.test/?page=2","https://other.test/?page=4"])
+  }));
+  assert.equal(invalid.valid,false);
+  assert.equal(invalid.reason,"target-not-observed");
+});
+
+test("preserves URL fallback when page links are unavailable",()=>{
+  const {context}=load();
+  const result=vm.runInContext("validateNumberedFallback('https://example.test/?page=2','https://example.test/?page=3',{querySelectorAll:()=>[]})",context);
+  assert.equal(result.valid,true);
+  assert.equal(result.reason,"no-observed-page-links");
+});

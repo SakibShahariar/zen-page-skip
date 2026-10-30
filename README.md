@@ -138,6 +138,10 @@ copy(window.zenPageSkipGetDiagnostics())
 
 The buffer is limited to the latest 100 entries. Disable debug mode for quiet normal operation.
 
+## Numbered URL fallback validation
+
+Before incrementing a numbered URL, the mod checks same-origin page links already present in the document. If numbered links are visible but the requested page is not among them, the fallback is rejected. When no page links are available, existing URL fallback behavior is preserved. No HEAD/OPTIONS requests are sent; this avoids extra network traffic and credential/CORS side effects.
+
 ## Infinite-scroll pages
 
 Pages marked with common feed or infinite-scroll indicators are not treated as numbered pagination unless an explicit pagination container or a site-specific selector is present. Override this per site with `"infiniteScroll": "allow"` or force the skip with `"infiniteScroll": "block"` in `zen-page-skip.site-rules`.
