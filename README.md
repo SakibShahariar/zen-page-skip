@@ -47,6 +47,10 @@ If neither method works, it shows a toast such as **“No next page found”** o
 
 The mod tries Zen’s native toast system first. If that API is unavailable, it uses Firefox’s in-window notification bar.
 
+## Compatibility
+
+Designed for Zen Browser with Sine. Navigation APIs are feature-detected at runtime; missing URI-navigation methods fail safely with a clear message instead of throwing. Other Firefox-based browsers are best-effort and are not claimed as runtime-verified.
+
 ## Install
 
 1. Install [Sine](https://github.com/CosmoCreeper/Sine) in Zen Browser.

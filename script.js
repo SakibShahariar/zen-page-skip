@@ -221,7 +221,11 @@ function getActiveTab() {
 }
 
 function getCurrentUrl() {
-  return getActiveTab()?.linkedBrowser?.currentURI?.spec ?? null;
+  try {
+    return getActiveTab()?.linkedBrowser?.currentURI?.spec ?? null;
+  } catch (error) {
+    return null;
+  }
 }
 
 function getPageDocument() {
@@ -370,14 +374,50 @@ function showToast(message) {
   }
 }
 
-function navigate(tab, url) {
-  const browser = tab.linkedBrowser;
-  const principal = Services.scriptSecurityManager.getSystemPrincipal();
-  try {
-    browser.loadURI(Services.io.newURI(url), { triggeringPrincipal: principal });
-  } catch (error) {
-    browser.fixupAndLoadURIString(url, { triggeringPrincipal: principal });
+function getNavigationCompatibility(tab) {
+  const browser = tab?.linkedBrowser;
+  const missing = [];
+  if (!browser) missing.push("selected tab browser");
+  if (typeof Services.scriptSecurityManager?.getSystemPrincipal !== "function") missing.push("system principal API");
+  if (typeof browser?.loadURI !== "function" && typeof browser?.fixupAndLoadURIString !== "function") {
+    missing.push("browser URI navigation API");
   }
+  if (typeof browser?.loadURI === "function" &&
+      typeof Services.io?.newURI !== "function" &&
+      typeof browser?.fixupAndLoadURIString !== "function") {
+    missing.push("URI construction API");
+  }
+  return { compatible: missing.length === 0, missing };
+}
+
+function navigate(tab, url) {
+  const browser = tab?.linkedBrowser;
+  const compatibility = getNavigationCompatibility(tab);
+  if (!compatibility.compatible) {
+    debugLog("navigation-api-unavailable", { missing: compatibility.missing });
+    return false;
+  }
+
+  const principal = Services.scriptSecurityManager.getSystemPrincipal();
+  const options = { triggeringPrincipal: principal };
+  try {
+    if (typeof browser.loadURI === "function") {
+      browser.loadURI(Services.io.newURI(url), options);
+      return true;
+    }
+  } catch (error) {
+    debugLog("loadURI-failed", { message: String(error) });
+  }
+
+  try {
+    if (typeof browser.fixupAndLoadURIString === "function") {
+      browser.fixupAndLoadURIString(url, options);
+      return true;
+    }
+  } catch (error) {
+    debugLog("fixup-navigation-failed", { message: String(error) });
+  }
+  return false;
 }
 
 function jump(direction) {
@@ -402,7 +442,10 @@ function jump(direction) {
     const relUrl = findRelPaginationUrl(direction, document, url);
     if (relUrl) {
       debugLog("head-rel-navigation", { target: new URL(relUrl).origin + new URL(relUrl).pathname });
-      navigate(tab, relUrl);
+      if (!navigate(tab, relUrl)) {
+        showToast("Navigation unavailable in this browser");
+        return;
+      }
       showToast(direction === 1 ? "Going to next page" : "Going to previous page");
       return;
     }
@@ -412,8 +455,13 @@ function jump(direction) {
 
   if (control) {
     control.scrollIntoView({ block: "nearest", behavior: "instant" });
-    control.click();
-    showToast(direction === 1 ? "Going to next page" : "Going to previous page");
+    try {
+      control.click();
+      showToast(direction === 1 ? "Going to next page" : "Going to previous page");
+    } catch (error) {
+      debugLog("control-click-failed", { message: String(error) });
+      showToast("Pagination control could not be activated");
+    }
     return;
   }
 
@@ -421,7 +469,10 @@ function jump(direction) {
 
   if (nextUrl) {
     debugLog("url-fallback", { target: new URL(nextUrl).origin + new URL(nextUrl).pathname });
-    navigate(tab, nextUrl);
+    if (!navigate(tab, nextUrl)) {
+      showToast("Navigation unavailable in this browser");
+      return;
+    }
     showToast(direction === 1 ? "Going to next page" : "Going to previous page");
     return;
   }

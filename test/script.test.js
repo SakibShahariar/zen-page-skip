@@ -235,3 +235,29 @@ test("recognizes multilingual labels and user-defined pagination words",()=>{
   const result=vm.runInContext("({chinese:matchesWords('下一页',getPaginationWords(1)),japanese:matchesWords('前へ',getPaginationWords(-1)),custom:matchesWords('続きを読む',getPaginationWords(1)),english:matchesWords('next page',getPaginationWords(1)),generic:matchesWords('continue',getPaginationWords(1))})",context);
   assert.deepEqual(JSON.parse(JSON.stringify(result)),{chinese:true,japanese:true,custom:true,english:true,generic:false});
 });
+
+test("detects navigation API availability and uses the supported fallback",()=>{
+  const {context}=load();
+  let loaded=null, fixed=null;
+  const principal={};
+  context.Services.scriptSecurityManager.getSystemPrincipal=()=>principal;
+  context.Services.io.newURI=(value)=>({spec:value});
+  const primary={linkedBrowser:{loadURI:(uri,options)=>{loaded={uri,options}}}};
+  assert.equal(vm.runInContext("getNavigationCompatibility(tab).compatible",Object.assign(context,{tab:primary})),true);
+  assert.equal(vm.runInContext("navigate(tab,'https://example.test/page/2')",Object.assign(context,{tab:primary})),true);
+  assert.equal(loaded.uri.spec,"https://example.test/page/2");
+  assert.equal(loaded.options.triggeringPrincipal,principal);
+
+  const fallback={linkedBrowser:{loadURI(){throw Error("unavailable")},fixupAndLoadURIString:(url)=>{fixed=url}}};
+  assert.equal(vm.runInContext("navigate(tab,'https://example.test/page/3')",Object.assign(context,{tab:fallback})),true);
+  assert.equal(fixed,"https://example.test/page/3");
+});
+
+test("fails safely when browser navigation APIs are unavailable",()=>{
+  const {context}=load();
+  context.Services.scriptSecurityManager.getSystemPrincipal=()=>({});
+  const tab={linkedBrowser:{}};
+  const result=vm.runInContext("({compat:getNavigationCompatibility(tab),navigated:navigate(tab,'https://example.test/page/2')})",Object.assign(context,{tab}));
+  assert.equal(result.compat.compatible,false);
+  assert.equal(result.navigated,false);
+});
