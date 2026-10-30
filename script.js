@@ -61,7 +61,10 @@ function observeShortcutPreferences() {
   const names = ["next-shortcut", "previous-shortcut"].map((name) => PREF_BRANCH + name);
   const observer = {
     observe(_subject, topic, data) {
-      if (topic === "nsPref:changed" && names.includes(data)) cachedShortcuts = null;
+      if (topic === "nsPref:changed" && names.includes(data)) {
+        cachedShortcuts = null;
+        reportShortcutWarnings();
+      }
     }
   };
   const registered = [];
@@ -519,6 +522,47 @@ function parseShortcut(shortcut) {
   return parsed;
 }
 
+function shortcutSignature(shortcut) {
+  const parsed = parseShortcut(shortcut);
+  return parsed ? JSON.stringify(parsed) : null;
+}
+
+function getShortcutWarnings() {
+  const shortcuts = getShortcuts();
+  const warnings = [];
+  const next = parseShortcut(shortcuts.next);
+  const previous = parseShortcut(shortcuts.previous);
+
+  if (!next) warnings.push(`Invalid next-page shortcut: ${shortcuts.next}`);
+  if (!previous) warnings.push(`Invalid previous-page shortcut: ${shortcuts.previous}`);
+  if (next && previous && shortcutSignature(shortcuts.next) === shortcutSignature(shortcuts.previous)) {
+    warnings.push("Next-page and previous-page shortcuts are identical.");
+  }
+
+  const reserved = [
+    "Ctrl+T", "Ctrl+W", "Ctrl+N", "Ctrl+Q", "Ctrl+L", "Ctrl+R", "Ctrl+F", "Ctrl+H", "Ctrl+J",
+    "Ctrl+Shift+T", "Ctrl+Tab", "Ctrl+Shift+Tab", "Alt+Left", "Alt+Right",
+    "Meta+T", "Meta+W", "Meta+N", "Meta+Q", "Meta+L", "Meta+R", "Meta+F", "Meta+H", "Meta+J",
+    "Meta+Shift+T"
+  ];
+  const reservedSignatures = new Set(reserved.map(shortcutSignature));
+  for (const [action, value] of [["next-page", shortcuts.next], ["previous-page", shortcuts.previous]]) {
+    if (shortcutSignature(value) && reservedSignatures.has(shortcutSignature(value))) {
+      warnings.push(`${action} shortcut ${value} conflicts with a common browser shortcut.`);
+    }
+  }
+  return warnings;
+}
+
+function reportShortcutWarnings() {
+  for (const warning of getShortcutWarnings()) console.warn("[Zen Page Skip]", warning);
+}
+
+window.zenPageSkipGetShortcutWarnings = getShortcutWarnings;
+window.addEventListener("unload", () => {
+  if (window.zenPageSkipGetShortcutWarnings === getShortcutWarnings) delete window.zenPageSkipGetShortcutWarnings;
+}, { once: true });
+
 function matches(event, shortcut) {
   const parsed = parseShortcut(shortcut);
   if (!parsed) return false;
@@ -555,4 +599,5 @@ function onKeyDown(event) {
 }
 
 observeShortcutPreferences();
+reportShortcutWarnings();
 window.addEventListener("keydown", onKeyDown, true);

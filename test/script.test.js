@@ -261,3 +261,22 @@ test("fails safely when browser navigation APIs are unavailable",()=>{
   assert.equal(result.compat.compatible,false);
   assert.equal(result.navigated,false);
 });
+
+test("reports invalid, duplicate, and common browser-reserved shortcuts",()=>{
+  const {context}=load();
+  context.Services.prefs.getStringPref=(name,fallback)=>{
+    if(name.endsWith("next-shortcut")) return "Ctrl+T";
+    if(name.endsWith("previous-shortcut")) return "Ctrl+T";
+    return fallback;
+  };
+  const warnings=vm.runInContext("getShortcutWarnings()",context);
+  assert.equal(warnings.some(x=>x.includes("identical")),true);
+  assert.equal(warnings.some(x=>x.includes("common browser shortcut")),true);
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("next-shortcut")?"Ctrl+Banana+N":fallback;
+  assert.equal(vm.runInContext("getShortcutWarnings()",context).some(x=>x.includes("Invalid next-page shortcut")),true);
+});
+
+test("default shortcuts have no known browser conflicts",()=>{
+  const {context}=load();
+  assert.deepEqual(JSON.parse(JSON.stringify(vm.runInContext("getShortcutWarnings()",context))),[]);
+});

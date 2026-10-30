@@ -22,6 +22,12 @@ Shortcut preferences accept modifier combinations such as:
 
 Set `zen-page-skip.cooldown-ms` to control the minimum time between shortcut actions. It defaults to `400` milliseconds; values are clamped to `0–5000` milliseconds.
 
+## Shortcut conflicts
+
+The mod warns about malformed shortcuts, identical next/previous bindings, and common reserved browser combinations (for example `Ctrl+T`, `Ctrl+W`, and `Alt+Left`). Browser and operating-system bindings vary, so warnings are best-effort rather than a complete conflict detector.
+
+Run `copy(window.zenPageSkipGetShortcutWarnings().join("\\n"))` in the browser console to copy the current warnings.
+
 ## How it works
 
 Zen Page Skip first checks for a page-navigation hint in the document head (`<link rel="next">` or `<link rel="prev">`). It then looks for the website’s own pagination control and clicks it. This works with many URL styles, including pages that do not put a page number in the URL.
