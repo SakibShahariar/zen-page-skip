@@ -603,3 +603,17 @@ test("falls back to the notification bar when the native toast API fails",()=>{
   assert.equal(appended,1);
   assert.equal(timeoutMs,2400);
 });
+
+test("validates and clamps imported cooldown strings",()=>{
+  const {context}=load();
+  const written={};
+  context.Services.prefs.setStringPref=(name,value)=>{written[name]=value};
+  const valid=JSON.stringify({schemaVersion:1,settings:{"cooldown-ms":"9000"}});
+  const result=vm.runInContext("importSettings(payload)",Object.assign(context,{payload:valid}));
+  assert.equal(result.success,true);
+  assert.equal(written["zen-page-skip.cooldown-ms"],"5000");
+  const invalid=JSON.stringify({schemaVersion:1,settings:{"cooldown-ms":"not-a-number"}});
+  const rejected=vm.runInContext("importSettings(payload)",Object.assign(context,{payload:invalid}));
+  assert.equal(rejected.success,false);
+  assert.deepEqual(JSON.parse(JSON.stringify(rejected.rejected)),["cooldown-ms"]);
+});

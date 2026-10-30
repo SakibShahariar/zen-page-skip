@@ -191,12 +191,12 @@ Add site-specific wording through `zen-page-skip.next-words` and `zen-page-skip.
 
 Enable `zen-page-skip.preview-before-navigation` to confirm the detected destination before navigation. The preview is off by default, and query strings and URL fragments are omitted from displayed destinations. If the confirmation API is unavailable, navigation is cancelled safely.
 
-## Feedback toasts
+## Toast settings
 
 - `zen-page-skip.toast-enabled` controls whether feedback messages are shown.
 - `zen-page-skip.toast-duration-ms` controls the display duration (500–10000 ms; default 1800 ms).
 
-The current Zen native toast API requires Fluent message IDs. Zen Page Skip uses the browser notification bar for its dynamic messages instead of passing unsupported raw text to that API.
+The native Zen API accepts Fluent message IDs rather than raw text. Zen Page Skip supplies a stable internal ID, replaces the toast label with its dynamic message, and falls back to the browser notification bar if native toast creation fails.
 
 ## Site exclusions
 

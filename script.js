@@ -272,6 +272,12 @@ function validateImportedSetting(name, value, schema) {
     return { valid: false };
   }
   if (typeof value !== "string" || value.length > 8192) return { valid: false };
+  if (name === "cooldown-ms") {
+    if (!/^\\d+$/.test(value)) return { valid: false };
+    const numeric = Number(value);
+    if (!Number.isSafeInteger(numeric)) return { valid: false };
+    return { valid: true, value: String(Math.min(Math.max(numeric, 0), 5000)) };
+  }
   if (name.endsWith("-shortcut") && !parseShortcut(value)) return { valid: false };
   if (name === "site-rules" && value) {
     try {
