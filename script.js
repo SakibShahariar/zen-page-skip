@@ -266,17 +266,16 @@ function validateImportedSetting(name, value, schema) {
   if (schema.type === "boolean") return typeof value === "boolean" ? { valid: true, value } : { valid: false };
   if (schema.type === "integer") {
     if (!Number.isInteger(value)) return { valid: false };
-    if (name === "cooldown-ms") return { valid: true, value: Math.min(Math.max(value, 0), 5000) };
     if (name === "toast-duration-ms") return { valid: true, value: Math.min(Math.max(value, 500), 10000) };
     if (name === "confidence-threshold") return { valid: true, value: Math.min(Math.max(value, 50), 150) };
     return { valid: false };
   }
   if (typeof value !== "string" || value.length > 8192) return { valid: false };
   if (name === "cooldown-ms") {
-    if (!/^\\d+$/.test(value)) return { valid: false };
+    if (!value || Array.from(value).some((character) => character < "0" || character > "9")) return { valid: false };
     const numeric = Number(value);
     if (!Number.isSafeInteger(numeric)) return { valid: false };
-    return { valid: true, value: String(Math.min(Math.max(numeric, 0), 5000)) };
+    return { valid: true, value: String(Math.min(numeric, 5000)) };
   }
   if (name.endsWith("-shortcut") && !parseShortcut(value)) return { valid: false };
   if (name === "site-rules" && value) {
