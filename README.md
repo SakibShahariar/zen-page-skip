@@ -81,6 +81,12 @@ copy(window.zenPageSkipGetDiagnostics())
 
 The buffer is limited to the latest 100 entries. Disable debug mode for quiet normal operation.
 
+## Language support
+
+The built-in exact-label vocabulary includes common English, Spanish, French, German, Portuguese, Dutch, Polish, Russian, Arabic, Chinese, Japanese, and Korean pagination labels. Generic labels such as “back” and “continue” are intentionally not treated as pagination signals.
+
+Add site-specific wording through `zen-page-skip.next-words` and `zen-page-skip.previous-words`. Values may be comma- or newline-separated and are matched case-insensitively.
+
 ## Pagination safety
 
 - `zen-page-skip.confidence-threshold` controls the minimum candidate score (50–150; default 70).

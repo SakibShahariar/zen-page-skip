@@ -228,3 +228,10 @@ test("bounds diagnostic history to the most recent 100 entries",()=>{
   assert.equal(result.includes('"i":0'),false);
   assert.equal(result.includes('"i":104'),true);
 });
+
+test("recognizes multilingual labels and user-defined pagination words",()=>{
+  const {context}=load();
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("next-words")?"続きを読む, Weiter lesen":fallback;
+  const result=vm.runInContext("({chinese:matchesWords('下一页',getPaginationWords(1)),japanese:matchesWords('前へ',getPaginationWords(-1)),custom:matchesWords('続きを読む',getPaginationWords(1)),english:matchesWords('next page',getPaginationWords(1)),generic:matchesWords('continue',getPaginationWords(1))})",context);
+  assert.deepEqual(JSON.parse(JSON.stringify(result)),{chinese:true,japanese:true,custom:true,english:true,generic:false});
+});

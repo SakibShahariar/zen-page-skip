@@ -64,6 +64,20 @@
       "description": "Log pagination candidates and navigation decisions locally. No data is sent anywhere.",
       "type": "checkbox",
       "defaultValue": false
+    },
+    {
+      "name": "zen-page-skip.next-words",
+      "title": "Additional next-page labels",
+      "description": "Comma- or newline-separated exact labels for next-page controls. Matching is case-insensitive.",
+      "type": "string",
+      "defaultValue": ""
+    },
+    {
+      "name": "zen-page-skip.previous-words",
+      "title": "Additional previous-page labels",
+      "description": "Comma- or newline-separated exact labels for previous-page controls. Matching is case-insensitive.",
+      "type": "string",
+      "defaultValue": ""
     }
   ]
 }

@@ -4,8 +4,8 @@ const PREF_BRANCH = "zen-page-skip.";
 const DEFAULT_NEXT_SHORTCUT = "Alt+]";
 const DEFAULT_PREVIOUS_SHORTCUT = "Alt+[";
 
-const NEXT_TEXT = ["next", "next page", "go to next page", "older", "older posts", "forward", "continue"];
-const PREVIOUS_TEXT = ["previous", "prev", "previous page", "go to previous page", "newer", "newer posts", "back"];
+const NEXT_TEXT = ["next", "next page", "go to next page", "older", "older posts", "siguiente", "siguiente página", "suivant", "prochain", "weiter", "nächste", "próximo", "próxima", "下一页", "下页", "次へ", "次のページ", "다음", "다음 페이지", "التالي", "الصفحة التالية", "следующая", "следующий", "следующая страница", "następna", "następna strona", "volgende", "pagina successiva", "prossimo"];
+const PREVIOUS_TEXT = ["previous", "prev", "previous page", "go to previous page", "newer", "newer posts", "anterior", "página anterior", "précédent", "précédente", "zurück", "vorherige", "上一页", "前一页", "前へ", "前のページ", "이전", "이전 페이지", "السابق", "الصفحة السابقة", "предыдущая", "предыдущий", "предыдущая страница", "poprzednia", "poprzednia strona", "vorige", "pagina precedente", "precedente"];
 const NEXT_SYMBOLS = [">", "»", "›", "→"];
 const PREVIOUS_SYMBOLS = ["<", "«", "‹", "←"];
 
@@ -152,6 +152,22 @@ window.addEventListener("unload", () => {
   if (window.zenPageSkipGetDiagnostics === getDiagnostics) delete window.zenPageSkipGetDiagnostics;
 }, { once: true });
 
+function getPaginationWords(direction) {
+  const defaults = direction === 1 ? NEXT_TEXT : PREVIOUS_TEXT;
+  const preference = direction === 1 ? "next-words" : "previous-words";
+  try {
+    const custom = Services.prefs.getStringPref(PREF_BRANCH + preference, "")
+      .split(String.fromCharCode(10))
+      .flatMap((line) => line.split(","))
+      .map((word) => word.trim().toLowerCase())
+      .filter(Boolean)
+      .slice(0, 100);
+    return [...new Set([...defaults, ...custom])];
+  } catch (error) {
+    return defaults;
+  }
+}
+
 function getConfidenceThreshold() {
   try {
     const value = Services.prefs.getIntPref(PREF_BRANCH + "confidence-threshold", 70);
@@ -284,7 +300,7 @@ function findPaginationControl(direction) {
   const document = getPageDocument();
   if (!document) return null;
 
-  const words = direction === 1 ? NEXT_TEXT : PREVIOUS_TEXT;
+  const words = getPaginationWords(direction);
   const symbols = direction === 1 ? NEXT_SYMBOLS : PREVIOUS_SYMBOLS;
   const candidates = Array.from(document.querySelectorAll('a, button, [role="button"]'));
   const scored = [];
