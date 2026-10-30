@@ -378,3 +378,11 @@ test("ignores invalid site-rule JSON",()=>{
   context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?"{bad json":fallback;
   assert.equal(vm.runInContext("getSiteRule('https://example.test')",context),null);
 });
+
+test("detects infinite-scroll indicators and honors site overrides",()=>{
+  const {context}=load();
+  const feed={querySelector:(selector)=>selector.includes('[role="feed"]')?{}:null};
+  const paginated={querySelector:(selector)=>selector.includes('nav[class*="pagination"]')?{}:null};
+  const result=vm.runInContext("({detected:isInfiniteScrollPage(feed),skip:shouldSkipInfiniteScroll(feed,null),allowed:shouldSkipInfiniteScroll(feed,{infiniteScroll:'allow'}),blocked:shouldSkipInfiniteScroll(feed,{infiniteScroll:'block'}),custom:shouldSkipInfiniteScroll(feed,{nextSelector:'a.next'}),explicit:shouldSkipInfiniteScroll(paginated,null)})",Object.assign(context,{feed,paginated}));
+  assert.deepEqual(JSON.parse(JSON.stringify(result)),{detected:true,skip:true,allowed:false,blocked:true,custom:false,explicit:false});
+});

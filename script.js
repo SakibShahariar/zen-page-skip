@@ -372,12 +372,35 @@ function getSiteRule(url) {
       previousSelector: cleanSelector(rule.previousSelector),
       nextWords: cleanWords(rule.nextWords),
       previousWords: cleanWords(rule.previousWords),
-      confidenceThreshold: Number.isInteger(rule.confidenceThreshold) ? Math.min(Math.max(rule.confidenceThreshold, 50), 150) : null
+      confidenceThreshold: Number.isInteger(rule.confidenceThreshold) ? Math.min(Math.max(rule.confidenceThreshold, 50), 150) : null,
+      infiniteScroll: rule.infiniteScroll === "allow" || rule.infiniteScroll === "block" ? rule.infiniteScroll : null
     };
   } catch (error) {
     debugLog("site-rules-invalid", {});
     return null;
   }
+}
+
+function isInfiniteScrollPage(document) {
+  try {
+    return Boolean(document.querySelector('[role="feed"], [data-infinite-scroll], [data-infinite-scroll-container], [class*="infinite-scroll"], [id*="infinite-scroll"]'));
+  } catch (error) {
+    return false;
+  }
+}
+
+function hasExplicitPaginationContainer(document) {
+  try {
+    return Boolean(document.querySelector('nav[class*="pagination"], [role="navigation"][class*="pagination"], nav[aria-label*="pagination"], [role="navigation"][aria-label*="pagination"]'));
+  } catch (error) {
+    return false;
+  }
+}
+
+function shouldSkipInfiniteScroll(document, siteRule) {
+  if (siteRule?.infiniteScroll === "block") return true;
+  if (siteRule?.infiniteScroll === "allow" || siteRule?.nextSelector || siteRule?.previousSelector) return false;
+  return isInfiniteScrollPage(document) && !hasExplicitPaginationContainer(document);
 }
 
 function findPaginationControl(direction) {
@@ -602,6 +625,13 @@ function jump(direction) {
       showToast(direction === 1 ? "Going to next page" : "Going to previous page");
       return;
     }
+  }
+
+  const siteRule = getSiteRule(url);
+  if (document && shouldSkipInfiniteScroll(document, siteRule)) {
+    debugLog("navigation-aborted", { reason: "infinite-scroll-page" });
+    showToast("Infinite-scroll page detected; no numbered pagination found");
+    return;
   }
 
   const control = findPaginationControl(direction);

@@ -92,6 +92,10 @@ copy(window.zenPageSkipGetDiagnostics())
 
 The buffer is limited to the latest 100 entries. Disable debug mode for quiet normal operation.
 
+## Infinite-scroll pages
+
+Pages marked with common feed or infinite-scroll indicators are not treated as numbered pagination unless an explicit pagination container or a site-specific selector is present. Override this per site with `"infiniteScroll": "allow"` or force the skip with `"infiniteScroll": "block"` in `zen-page-skip.site-rules`.
+
 ## Per-site rules
 
 Set `zen-page-skip.site-rules` to a JSON object keyed by a hostname or wildcard subdomain. Example:
@@ -103,7 +107,8 @@ Set `zen-page-skip.site-rules` to a JSON object keyed by a hostname or wildcard 
     "previousSelector": "a.pagination-previous",
     "nextWords": ["Load more"],
     "previousWords": ["Newer results"],
-    "confidenceThreshold": 85
+    "confidenceThreshold": 85,
+    "infiniteScroll": "allow"
   },
   "*.forum.example": {
     "nextSelector": "button[aria-label='Next page']"
