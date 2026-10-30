@@ -587,7 +587,7 @@ test("passes enabled and duration preferences to Zen native toasts",async()=>{
   context.Services.prefs.getIntPref=()=>2700;
   vm.runInContext("showToast('native message')",context);
   await Promise.resolve();
-  assert.deepEqual(nativeCall,{id:"zen-page-skip-toast",options:{timeout:2700}});
+  assert.deepEqual(JSON.parse(JSON.stringify(nativeCall)),{id:"zen-page-skip-toast",options:{timeout:2700}});
   assert.equal(label.textContent,"native message");
 });
 
