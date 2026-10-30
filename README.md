@@ -32,7 +32,7 @@ Supported modifier names: `Ctrl`/`Control`, `Alt`/`Option`, `Shift`, and `Meta`/
 The mod warns about invalid shortcuts, duplicate bindings, and common browser-shortcut conflicts. These checks are best-effort because browser and operating-system bindings vary. To copy the current warnings from the browser console:
 
 ```js
-copy(window.zenPageSkipGetShortcutWarnings().join("\\n"))
+copy(window.zenPageSkipGetShortcutWarnings().join("\n"))
 ```
 
 ## What it can do
