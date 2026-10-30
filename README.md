@@ -138,6 +138,10 @@ copy(window.zenPageSkipGetDiagnostics())
 
 The buffer is limited to the latest 100 entries. Disable debug mode for quiet normal operation.
 
+## Hash-based pagination
+
+Hash-only page changes are handled separately from full URL navigation. By default, the mod checks whether visible page content changes after the fragment update and reports when it does not. Per-site rules can set `hashMode` to `verify` (default), `allow` (explicitly trust the site but still warn that content may not change), or `disable`.
+
 ## Numbered URL fallback validation
 
 Before incrementing a numbered URL, the mod checks same-origin page links already present in the document. If numbered links are visible but the requested page is not among them, the fallback is rejected. When no page links are available, existing URL fallback behavior is preserved. No HEAD/OPTIONS requests are sent; this avoids extra network traffic and credential/CORS side effects.

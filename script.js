@@ -401,6 +401,14 @@ function describeControlTarget(href, currentUrl, label) {
   }
 }
 
+function describeControlTargetUrl(href, currentUrl) {
+  try {
+    return new URL(href, currentUrl).href;
+  } catch (error) {
+    return null;
+  }
+}
+
 function confirmNavigation(description) {
   if (!isPreviewEnabled()) return true;
   try {
@@ -570,7 +578,8 @@ function getSiteRule(url) {
       infiniteScroll: rule.infiniteScroll === "allow" || rule.infiniteScroll === "block" ? rule.infiniteScroll : null,
       pageTemplate: typeof rule.pageTemplate === "string" && rule.pageTemplate.length <= 512 ? rule.pageTemplate : "",
       enabled: typeof rule.enabled === "boolean" ? rule.enabled : null,
-      action: ["auto", "click", "url"].includes(rule.action) ? rule.action : "auto"
+      action: ["auto", "click", "url"].includes(rule.action) ? rule.action : "auto",
+      hashMode: ["verify", "allow", "disable"].includes(rule.hashMode) ? rule.hashMode : "verify"
     };
   } catch (error) {
     debugLog("site-rules-invalid", {});
@@ -688,6 +697,63 @@ function showToast(message) {
   }
 }
 
+function isHashOnlyNavigation(currentUrl, targetUrl) {
+  try {
+    const current = new URL(currentUrl);
+    const target = new URL(targetUrl, current);
+    return current.origin === target.origin &&
+      current.pathname === target.pathname &&
+      current.search === target.search &&
+      current.hash !== target.hash;
+  } catch (error) {
+    return false;
+  }
+}
+
+function getPageContentSignature(document) {
+  const text = document?.body?.innerText ?? document?.body?.textContent ?? "";
+  return String(text.length) + ":" + String(text).slice(0, 4096);
+}
+
+function monitorHashContentChange(beforeSignature) {
+  showToast("Checking hash-based pagination");
+  window.setTimeout(() => {
+    const afterSignature = getPageContentSignature(getPageDocument());
+    if (afterSignature !== beforeSignature) {
+      showToast("Page content updated");
+    } else {
+      showToast("Fragment changed, but page content did not update");
+    }
+  }, 1200);
+}
+
+function navigateHashTarget(tab, targetUrl, mode) {
+  const browser = tab?.linkedBrowser;
+  const contentWindow = browser?.contentWindow;
+  if (!contentWindow?.location) return false;
+  let target;
+  try {
+    target = new URL(targetUrl);
+  } catch (error) {
+    return false;
+  }
+  const beforeSignature = getPageContentSignature(browser.contentDocument || contentWindow.document);
+  try {
+    contentWindow.location.hash = target.hash;
+  } catch (error) {
+    debugLog("hash-navigation-failed", { message: String(error) });
+    return false;
+  }
+  if (mode === "allow") {
+    showToast("Fragment changed; page content may not have changed");
+  } else {
+    monitorHashContentChange(beforeSignature);
+  }
+  return true;
+}
+
+let lastNavigationWasHash = false;
+
 function getNavigationCompatibility(tab) {
   const browser = tab?.linkedBrowser;
   const missing = [];
@@ -706,6 +772,22 @@ function getNavigationCompatibility(tab) {
 
 function navigate(tab, url) {
   const browser = tab?.linkedBrowser;
+  lastNavigationWasHash = false;
+  const currentUrl = browser?.currentURI?.spec;
+  if (currentUrl && isHashOnlyNavigation(currentUrl, url)) {
+    lastNavigationWasHash = true;
+    const mode = getSiteRule(currentUrl)?.hashMode || "verify";
+    if (mode === "disable") {
+      showToast("Hash pagination disabled for this site");
+      return false;
+    }
+    if (!navigateHashTarget(tab, url, mode)) {
+      showToast("Hash navigation unavailable");
+      return false;
+    }
+    return true;
+  }
+
   const compatibility = getNavigationCompatibility(tab);
   if (!compatibility.compatible) {
     debugLog("navigation-api-unavailable", { missing: compatibility.missing });
@@ -733,7 +815,6 @@ function navigate(tab, url) {
   }
   return false;
 }
-
 
 function jumpToPage() {
   const tab = getActiveTab();
@@ -786,10 +867,10 @@ function jumpToPage() {
     return;
   }
   if (!navigate(tab, target)) {
-    showToast("Navigation unavailable in this browser");
+    if (!lastNavigationWasHash) showToast("Navigation unavailable in this browser");
     return;
   }
-  showToast("Going to page " + page);
+  if (!lastNavigationWasHash) showToast("Going to page " + page);
 }
 
 function jump(direction) {
@@ -809,6 +890,12 @@ function jump(direction) {
     return;
   }
 
+  const siteRule = getSiteRule(url);
+  if (siteRule?.enabled === false) {
+    showToast("Disabled by this site's rule");
+    return;
+  }
+
   const document = getPageDocument();
   if (document) {
     const relUrl = findRelPaginationUrl(direction, document, url);
@@ -820,19 +907,14 @@ function jump(direction) {
       }
       debugLog("head-rel-navigation", { target: new URL(relUrl).origin + new URL(relUrl).pathname });
       if (!navigate(tab, relUrl)) {
-        showToast("Navigation unavailable in this browser");
+        if (!lastNavigationWasHash) showToast("Navigation unavailable in this browser");
         return;
       }
-      showToast(direction === 1 ? "Going to next page" : "Going to previous page");
+      if (!lastNavigationWasHash) showToast(direction === 1 ? "Going to next page" : "Going to previous page");
       return;
     }
   }
 
-  const siteRule = getSiteRule(url);
-  if (siteRule?.enabled === false) {
-    showToast("Disabled by this site's rule");
-    return;
-  }
   if (document && shouldSkipInfiniteScroll(document, siteRule)) {
     debugLog("navigation-aborted", { reason: "infinite-scroll-page" });
     showToast("Infinite-scroll page detected; no numbered pagination found");
@@ -850,6 +932,14 @@ function jump(direction) {
     const label = normalizedText(control) || "pagination control";
     const href = control.getAttribute("href");
     const targetDescription = href ? describeControlTarget(href, url, label) : label;
+    const controlTarget = href ? describeControlTargetUrl(href, url) : null;
+    const hashOnly = controlTarget ? isHashOnlyNavigation(url, controlTarget) : false;
+    const hashMode = siteRule?.hashMode || "verify";
+    if (hashOnly && hashMode === "disable") {
+      showToast("Hash pagination disabled for this site");
+      return;
+    }
+    const beforeHashSignature = hashOnly ? getPageContentSignature(document) : null;
     if (!confirmNavigation(targetDescription)) {
       showToast("Navigation cancelled");
       return;
@@ -857,7 +947,12 @@ function jump(direction) {
     control.scrollIntoView({ block: "nearest", behavior: "instant" });
     try {
       control.click();
-      showToast(direction === 1 ? "Going to next page" : "Going to previous page");
+      if (hashOnly) {
+        if (hashMode === "allow") showToast("Fragment changed; page content may not have changed");
+        else monitorHashContentChange(beforeHashSignature);
+      } else {
+        showToast(direction === 1 ? "Going to next page" : "Going to previous page");
+      }
     } catch (error) {
       debugLog("control-click-failed", { message: String(error) });
       showToast("Pagination control could not be activated");
@@ -881,10 +976,10 @@ function jump(direction) {
     }
     debugLog("url-fallback", { target: new URL(nextUrl).origin + new URL(nextUrl).pathname });
     if (!navigate(tab, nextUrl)) {
-      showToast("Navigation unavailable in this browser");
+      if (!lastNavigationWasHash) showToast("Navigation unavailable in this browser");
       return;
     }
-    showToast(direction === 1 ? "Going to next page" : "Going to previous page");
+    if (!lastNavigationWasHash) showToast(direction === 1 ? "Going to next page" : "Going to previous page");
     return;
   }
 

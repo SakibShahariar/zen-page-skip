@@ -530,3 +530,47 @@ test("preserves URL fallback when page links are unavailable",()=>{
   assert.equal(result.valid,true);
   assert.equal(result.reason,"no-observed-page-links");
 });
+
+test("detects hash-only routes and verifies actual content changes",()=>{
+  const {context}=load();
+  assert.equal(vm.runInContext("isHashOnlyNavigation('https://x.test/page#page=1','https://x.test/page#page=2')",context),true);
+  assert.equal(vm.runInContext("isHashOnlyNavigation('https://x.test/page/1','https://x.test/page/2')",context),false);
+  const messages=[];
+  let callback=null;
+  const browser={contentWindow:{location:{hash:"#page=1"}},contentDocument:{body:{innerText:"old page"}}};
+  context.window.gBrowser={selectedTab:{linkedBrowser:browser}};
+  context.window.setTimeout=(fn)=>{callback=fn};
+  vm.runInContext("showToast = (message) => toastMessages.push(message)",Object.assign(context,{toastMessages:messages}));
+  assert.equal(vm.runInContext("navigateHashTarget(tab,'https://x.test/page#page=2','verify')",Object.assign(context,{tab:{linkedBrowser:browser}})),true);
+  assert.equal(browser.contentWindow.location.hash,"#page=2");
+  browser.contentDocument.body.innerText="new page";
+  callback();
+  assert.equal(messages.includes("Page content updated"),true);
+});
+
+test("reports unchanged hash fragments instead of claiming successful pagination",()=>{
+  const {context}=load();
+  const messages=[];
+  let callback=null;
+  const browser={contentWindow:{location:{hash:"#page=1"}},contentDocument:{body:{innerText:"same page"}}};
+  context.window.gBrowser={selectedTab:{linkedBrowser:browser}};
+  context.window.setTimeout=(fn)=>{callback=fn};
+  vm.runInContext("showToast = (message) => toastMessages.push(message)",Object.assign(context,{toastMessages:messages}));
+  vm.runInContext("navigateHashTarget(tab,'https://x.test/page#page=2','verify')",Object.assign(context,{tab:{linkedBrowser:browser}}));
+  callback();
+  assert.equal(messages.includes("Fragment changed, but page content did not update"),true);
+});
+
+test("allows explicit hash mode overrides and blocks disabled site rules before rel navigation",()=>{
+  const {context}=load();
+  const messages=[];
+  const browser={currentURI:{spec:"https://x.test/page#page=1"},contentWindow:{location:{hash:"#page=1"}},contentDocument:{body:{innerText:"same"}}};
+  context.window.gBrowser={selectedTab:{linkedBrowser:browser}};
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?JSON.stringify({"x.test":{enabled:false,hashMode:"disable"}}):fallback;
+  context.Services.prefs.getBoolPref=()=>false;
+  vm.runInContext("showToast = (message) => toastMessages.push(message)",Object.assign(context,{toastMessages:messages}));
+  vm.runInContext("findRelPaginationUrl = () => 'https://x.test/page#page=2'",context);
+  vm.runInContext("jump(1)",context);
+  assert.equal(browser.contentWindow.location.hash,"#page=1");
+  assert.equal(messages.includes("Disabled by this site's rule"),true);
+});
