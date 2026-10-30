@@ -23,6 +23,15 @@ Shortcut preferences accept modifier combinations such as:
 
 Set `zen-page-skip.cooldown-ms` to control the minimum time between shortcut actions. It defaults to `400` milliseconds; values are clamped to `0–5000` milliseconds.
 
+## Shortcut syntax
+
+- Modifiers: `Ctrl`/`Control`, `Alt`/`Option`, `Shift`, and `Meta`/`Cmd`/`Command`/`Super`/`Win`/`Windows`.
+- Arrow aliases: `Left`, `Right`, `Up`, and `Down` (or their `ArrowLeft`-style names).
+- Key aliases: `Esc`/`Escape`, `Return`/`Enter`, and `Space`/`Spacebar`.
+- Modifier names are case-insensitive. Malformed combinations and repeated modifiers are rejected.
+
+Examples: `Ctrl+Alt+Right`, `Cmd+Shift+N`, `Super+N`, and `Option+P`.
+
 ## Shortcut conflicts
 
 The mod warns about malformed shortcuts, identical next/previous bindings, and common reserved browser combinations (for example `Ctrl+T`, `Ctrl+W`, and `Alt+Left`). Browser and operating-system bindings vary, so warnings are best-effort rather than a complete conflict detector.
