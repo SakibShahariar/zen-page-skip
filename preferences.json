@@ -92,6 +92,13 @@
       "description": "Opens a page-number prompt for supported numbered URL patterns.",
       "type": "string",
       "defaultValue": "Alt+Shift+P"
+    },
+    {
+      "name": "zen-page-skip.site-rules",
+      "title": "Per-site pagination rules (JSON)",
+      "description": "JSON object keyed by hostname or *.example.com. Supports nextSelector, previousSelector, nextWords, previousWords, and confidenceThreshold.",
+      "type": "string",
+      "defaultValue": ""
     }
   ]
 }

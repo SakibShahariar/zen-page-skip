@@ -318,7 +318,7 @@ function isInPaginationContext(element) {
   return Boolean(element.closest('nav, [role="navigation"], [class*="pagination"], [id*="pagination"], [class*="pager"], [id*="pager"]'));
 }
 
-function isSafeNavigationControl(element) {
+function isSafeNavigationControl(element, explicitlySelected = false) {
   const tag = element.tagName?.toLowerCase();
   const role = element.getAttribute("role");
   if (!["a", "button"].includes(tag) && role !== "button") return false;
@@ -327,17 +327,14 @@ function isSafeNavigationControl(element) {
   if (element.getAttribute("aria-haspopup") || element.getAttribute("aria-expanded") === "true") return false;
   if (["dialog", "menuitem", "menuitemcheckbox", "menuitemradio"].includes(role)) return false;
   if (element.closest('dialog, [role="dialog"]')) return false;
-
   const label = normalizedText(element);
-  const destructiveLabels = ["delete", "remove", "unsubscribe", "purchase", "buy", "pay", "submit", "confirm", "cancel", "logout", "log out", "sign out", "archive"];
-  if (destructiveLabels.some((word) => label === word || label.startsWith(word + " ") || label.endsWith(" " + word))) return false;
-
+  const destructive = ["delete", "remove", "unsubscribe", "purchase", "buy", "pay", "submit", "confirm", "cancel", "logout", "log out", "sign out", "archive"];
+  if (destructive.some((word) => label === word || label.startsWith(word + " ") || label.endsWith(" " + word))) return false;
   if (tag === "a") {
     const href = element.getAttribute("href")?.trim();
     return Boolean(href) && !/^(?:javascript|data|vbscript):/i.test(href);
   }
-
-  return isInPaginationContext(element) && element.getAttribute("type")?.toLowerCase() !== "submit";
+  return (explicitlySelected || isInPaginationContext(element)) && element.getAttribute("type")?.toLowerCase() !== "submit";
 }
 
 function findRelPaginationUrl(direction, document, currentUrl) {
@@ -355,15 +352,57 @@ function findRelPaginationUrl(direction, document, currentUrl) {
   return null;
 }
 
+function getSiteRule(url) {
+  try {
+    const raw = Services.prefs.getStringPref(PREF_BRANCH + "site-rules", "");
+    if (!raw || raw.length > 8192) return null;
+    const rules = JSON.parse(raw);
+    if (!rules || typeof rules !== "object" || Array.isArray(rules)) return null;
+    const hostname = new URL(url).hostname.toLowerCase();
+    const entries = Object.entries(rules).filter(([pattern]) => {
+      const host = String(pattern).toLowerCase();
+      return host.startsWith("*.") ? hostname.endsWith("." + host.slice(2)) : hostname === host;
+    }).sort((a, b) => b[0].length - a[0].length);
+    const rule = entries[0]?.[1];
+    if (!rule || typeof rule !== "object" || Array.isArray(rule)) return null;
+    const cleanSelector = (value) => typeof value === "string" && value.length <= 512 ? value.trim() : "";
+    const cleanWords = (value) => Array.isArray(value) ? value.filter((word) => typeof word === "string" && word.trim() && word.length <= 80).slice(0, 50).map((word) => word.trim().toLowerCase()) : [];
+    return {
+      nextSelector: cleanSelector(rule.nextSelector),
+      previousSelector: cleanSelector(rule.previousSelector),
+      nextWords: cleanWords(rule.nextWords),
+      previousWords: cleanWords(rule.previousWords),
+      confidenceThreshold: Number.isInteger(rule.confidenceThreshold) ? Math.min(Math.max(rule.confidenceThreshold, 50), 150) : null
+    };
+  } catch (error) {
+    debugLog("site-rules-invalid", {});
+    return null;
+  }
+}
+
 function findPaginationControl(direction) {
   const document = getPageDocument();
   if (!document) return null;
 
-  const words = getPaginationWords(direction);
+  const siteRule = getSiteRule(getCurrentUrl());
+  const selector = direction === 1 ? siteRule?.nextSelector : siteRule?.previousSelector;
+  if (selector) {
+    try {
+      const custom = document.querySelector(selector);
+      if (custom && isSafeNavigationControl(custom, true) && !isExcludedByUserSelector(custom, document)) {
+        debugLog("site-selector-selected", { label: normalizedText(custom) });
+        return custom;
+      }
+    } catch (error) {
+      debugLog("site-selector-invalid", {});
+    }
+  }
+  const extraWords = direction === 1 ? siteRule?.nextWords : siteRule?.previousWords;
+  const words = [...getPaginationWords(direction), ...(extraWords || [])];
   const symbols = direction === 1 ? NEXT_SYMBOLS : PREVIOUS_SYMBOLS;
   const candidates = Array.from(document.querySelectorAll('a, button, [role="button"]'));
   const scored = [];
-  const threshold = getConfidenceThreshold();
+  const threshold = siteRule?.confidenceThreshold ?? getConfidenceThreshold();
 
   for (const element of candidates) {
     const text = normalizedText(element);

@@ -92,6 +92,27 @@ copy(window.zenPageSkipGetDiagnostics())
 
 The buffer is limited to the latest 100 entries. Disable debug mode for quiet normal operation.
 
+## Per-site rules
+
+Set `zen-page-skip.site-rules` to a JSON object keyed by a hostname or wildcard subdomain. Example:
+
+```json
+{
+  "example.com": {
+    "nextSelector": "a.pagination-next",
+    "previousSelector": "a.pagination-previous",
+    "nextWords": ["Load more"],
+    "previousWords": ["Newer results"],
+    "confidenceThreshold": 85
+  },
+  "*.forum.example": {
+    "nextSelector": "button[aria-label='Next page']"
+  }
+}
+```
+
+Site selectors take priority over generic detection but still pass the safety and exclusion checks. Invalid JSON or selectors are ignored. Per-site thresholds are clamped to 50–150.
+
 ## Language support
 
 The built-in exact-label vocabulary includes common English, Spanish, French, German, Portuguese, Dutch, Polish, Russian, Arabic, Chinese, Japanese, and Korean pagination labels. Generic labels such as “back” and “continue” are intentionally not treated as pagination signals.

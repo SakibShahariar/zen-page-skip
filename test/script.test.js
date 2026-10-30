@@ -350,3 +350,31 @@ test("rejects invalid page numbers and respects prompt cancellation",()=>{
   vm.runInContext("jumpToPage()",context);
   assert.equal(loaded,null);
 });
+
+test("loads exact and wildcard site rules with bounded thresholds",()=>{
+  const {context}=load();
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?JSON.stringify({
+    "example.test":{nextWords:["More items"],confidenceThreshold:90},
+    "*.sub.test":{previousWords:["Older results"],confidenceThreshold:200}
+  }):fallback;
+  const exact=vm.runInContext("getSiteRule('https://example.test/page/1')",context);
+  const wildcard=vm.runInContext("getSiteRule('https://shop.sub.test/page/1')",context);
+  assert.deepEqual(JSON.parse(JSON.stringify(exact.nextWords)),["more items"]);
+  assert.equal(exact.confidenceThreshold,90);
+  assert.deepEqual(JSON.parse(JSON.stringify(wildcard.previousWords)),["older results"]);
+  assert.equal(wildcard.confidenceThreshold,150);
+});
+
+test("prioritizes safe per-site selectors before generic scoring",()=>{
+  const button=el({tagName:"BUTTON",text:"Load more",attrs:{type:"button"}});
+  const doc={querySelector:()=>button,querySelectorAll:()=>[]};
+  const {context}=load({gBrowser:{selectedTab:{linkedBrowser:{currentURI:{spec:"https://example.test/page/1"},contentDocument:doc}}}});
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?JSON.stringify({"example.test":{nextSelector:".load-more"}}):fallback;
+  assert.equal(vm.runInContext("findPaginationControl(1)",context),button);
+});
+
+test("ignores invalid site-rule JSON",()=>{
+  const {context}=load();
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?"{bad json":fallback;
+  assert.equal(vm.runInContext("getSiteRule('https://example.test')",context),null);
+});
