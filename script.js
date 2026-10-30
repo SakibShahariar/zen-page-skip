@@ -144,7 +144,7 @@ function debugLog(event, details = {}) {
 }
 
 function getDiagnostics() {
-  return diagnosticEntries.join("\\n");
+  return diagnosticEntries.join("\n");
 }
 
 window.zenPageSkipGetDiagnostics = getDiagnostics;
