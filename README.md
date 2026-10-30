@@ -18,7 +18,7 @@ Shortcut preferences accept modifier combinations such as:
 - `Cmd+Alt+Right` and `Cmd+Alt+Left`
 - `Super+N`, `Meta+N`, `Alt+N`, and `Alt+P`
 
-`Ctrl` and `Cmd`/`Meta`/`Super` are distinct modifiers. `Option` is an alias for `Alt`.
+`Ctrl` and `Cmd`/`Meta`/`Super` are distinct modifiers. `Option` is an alias for `Alt`. Shortcut preferences are cached and refreshed when either shortcut setting changes.
 
 Set `zen-page-skip.cooldown-ms` to control the minimum time between shortcut actions. It defaults to `400` milliseconds; values are clamped to `0–5000` milliseconds.
 

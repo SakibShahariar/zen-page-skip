@@ -190,3 +190,18 @@ test("keeps pagination anchors inside forms but rejects form buttons",()=>{
   const result=vm.runInContext("({anchor:isSafeNavigationControl(anchor),button:isSafeNavigationControl(button)})",Object.assign(context,{anchor,button}));
   assert.deepEqual(JSON.parse(JSON.stringify(result)),{anchor:true,button:false});
 });
+
+test("caches shortcut preferences and invalidates them on preference changes",()=>{
+  const {context}=load();
+  let reads=0, observer=null;
+  context.Services.prefs.getStringPref=(_name,fallback)=>{reads++;return fallback};
+  context.Services.prefs.addObserver=(_name,value)=>{observer=value};
+  context.Services.prefs.removeObserver=()=>{};
+  vm.runInContext("observeShortcutPreferences()",context);
+  vm.runInContext("getShortcuts()",context);
+  vm.runInContext("getShortcuts()",context);
+  assert.equal(reads,2);
+  observer.observe(null,"nsPref:changed","zen-page-skip.next-shortcut");
+  vm.runInContext("getShortcuts()",context);
+  assert.equal(reads,4);
+});

@@ -43,11 +43,46 @@ function getShortcut(name, fallback) {
   }
 }
 
+let cachedShortcuts = null;
+let shortcutObserversRegistered = false;
+
 function getShortcuts() {
-  return {
+  if (shortcutObserversRegistered && cachedShortcuts) return cachedShortcuts;
+  const shortcuts = {
     next: getShortcut("next-shortcut", DEFAULT_NEXT_SHORTCUT),
     previous: getShortcut("previous-shortcut", DEFAULT_PREVIOUS_SHORTCUT)
   };
+  if (shortcutObserversRegistered) cachedShortcuts = shortcuts;
+  return shortcuts;
+}
+
+function observeShortcutPreferences() {
+  if (typeof Services.prefs.addObserver !== "function") return;
+  const names = ["next-shortcut", "previous-shortcut"].map((name) => PREF_BRANCH + name);
+  const observer = {
+    observe(_subject, topic, data) {
+      if (topic === "nsPref:changed" && names.includes(data)) cachedShortcuts = null;
+    }
+  };
+  const registered = [];
+  try {
+    for (const name of names) {
+      Services.prefs.addObserver(name, observer);
+      registered.push(name);
+    }
+    shortcutObserversRegistered = true;
+    window.addEventListener("unload", () => {
+      for (const name of registered) Services.prefs.removeObserver(name, observer);
+      shortcutObserversRegistered = false;
+      cachedShortcuts = null;
+    }, { once: true });
+  } catch (error) {
+    for (const name of registered) {
+      try { Services.prefs.removeObserver(name, observer); } catch (removeError) {}
+    }
+    shortcutObserversRegistered = false;
+    cachedShortcuts = null;
+  }
 }
 
 function getDisabledSites() {
@@ -402,4 +437,5 @@ function onKeyDown(event) {
   }
 }
 
+observeShortcutPreferences();
 window.addEventListener("keydown", onKeyDown, true);
