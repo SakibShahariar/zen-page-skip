@@ -103,6 +103,10 @@ Add site-specific wording through `zen-page-skip.next-words` and `zen-page-skip.
 - `zen-page-skip.excluded-selectors` accepts newline-separated CSS selectors for controls that must never be clicked.
 - Form buttons, dialogs, menu controls, and common destructive actions are excluded by default. Pagination links inside forms remain eligible.
 
+## Target preview
+
+Enable `zen-page-skip.preview-before-navigation` to confirm the detected destination before navigation. The preview is off by default, and query strings and URL fragments are omitted from displayed destinations. If the confirmation API is unavailable, navigation is cancelled safely.
+
 ## Feedback toasts
 
 - `zen-page-skip.toast-enabled` controls whether feedback messages are shown.

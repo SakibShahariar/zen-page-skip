@@ -280,3 +280,30 @@ test("default shortcuts have no known browser conflicts",()=>{
   const {context}=load();
   assert.deepEqual(JSON.parse(JSON.stringify(vm.runInContext("getShortcutWarnings()",context))),[]);
 });
+
+test("keeps target preview off by default and confirms when enabled",()=>{
+  const {context}=load();
+  let calls=0, message="";
+  context.Services.prompt={confirm:(_window,_title,text)=>{calls++;message=text;return false}};
+  context.Services.prefs.getBoolPref=()=>false;
+  assert.equal(vm.runInContext("confirmNavigation('example.test/page/2')",context),true);
+  assert.equal(calls,0);
+  context.Services.prefs.getBoolPref=()=>true;
+  assert.equal(vm.runInContext("confirmNavigation('example.test/page/2')",context),false);
+  assert.equal(calls,1);
+  assert.equal(message.includes("example.test/page/2"),true);
+  context.Services.prompt.confirm=()=>true;
+  assert.equal(vm.runInContext("confirmNavigation('next page')",context),true);
+});
+
+test("cancels preview safely when the prompt API is unavailable",()=>{
+  const {context}=load();
+  context.Services.prefs.getBoolPref=()=>true;
+  context.Services.prompt=undefined;
+  assert.equal(vm.runInContext("confirmNavigation('next page')",context),false);
+});
+
+test("preview descriptions omit query strings and fragments",()=>{
+  const {context}=load();
+  assert.equal(vm.runInContext("describeNavigationTarget('https://example.test/page/2?token=secret#part')",context),"page: https://example.test/page/2");
+});

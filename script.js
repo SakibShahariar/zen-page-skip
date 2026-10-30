@@ -171,6 +171,39 @@ function getPaginationWords(direction) {
   }
 }
 
+function isPreviewEnabled() {
+  try {
+    return Services.prefs.getBoolPref(PREF_BRANCH + "preview-before-navigation", false);
+  } catch (error) {
+    return false;
+  }
+}
+
+function describeNavigationTarget(url, label = "page") {
+  try {
+    const target = new URL(url);
+    return `${label}: ${target.origin}${target.pathname}`;
+  } catch (error) {
+    return label;
+  }
+}
+
+function confirmNavigation(description) {
+  if (!isPreviewEnabled()) return true;
+  try {
+    if (typeof Services.prompt?.confirm !== "function") {
+      debugLog("preview-unavailable", { reason: "prompt-api-missing" });
+      return false;
+    }
+    const confirmed = Services.prompt.confirm(window, "Zen Page Skip", `Navigate to ${description}?`);
+    if (!confirmed) debugLog("navigation-cancelled", { target: description });
+    return confirmed;
+  } catch (error) {
+    debugLog("preview-unavailable", { message: String(error) });
+    return false;
+  }
+}
+
 function getConfidenceThreshold() {
   try {
     const value = Services.prefs.getIntPref(PREF_BRANCH + "confidence-threshold", 70);
@@ -444,6 +477,11 @@ function jump(direction) {
   if (document) {
     const relUrl = findRelPaginationUrl(direction, document, url);
     if (relUrl) {
+      const targetDescription = describeNavigationTarget(relUrl);
+      if (!confirmNavigation(targetDescription)) {
+        showToast("Navigation cancelled");
+        return;
+      }
       debugLog("head-rel-navigation", { target: new URL(relUrl).origin + new URL(relUrl).pathname });
       if (!navigate(tab, relUrl)) {
         showToast("Navigation unavailable in this browser");
@@ -457,6 +495,13 @@ function jump(direction) {
   const control = findPaginationControl(direction);
 
   if (control) {
+    const label = normalizedText(control) || "pagination control";
+    const href = control.getAttribute("href");
+    const targetDescription = href ? describeNavigationTarget(new URL(href, url).href, label) : label;
+    if (!confirmNavigation(targetDescription)) {
+      showToast("Navigation cancelled");
+      return;
+    }
     control.scrollIntoView({ block: "nearest", behavior: "instant" });
     try {
       control.click();
@@ -471,6 +516,11 @@ function jump(direction) {
   const nextUrl = getNumberedPageUrl(url, direction);
 
   if (nextUrl) {
+    const targetDescription = describeNavigationTarget(nextUrl);
+    if (!confirmNavigation(targetDescription)) {
+      showToast("Navigation cancelled");
+      return;
+    }
     debugLog("url-fallback", { target: new URL(nextUrl).origin + new URL(nextUrl).pathname });
     if (!navigate(tab, nextUrl)) {
       showToast("Navigation unavailable in this browser");

@@ -78,6 +78,13 @@
       "description": "Comma- or newline-separated exact labels for previous-page controls. Matching is case-insensitive.",
       "type": "string",
       "defaultValue": ""
+    },
+    {
+      "name": "zen-page-skip.preview-before-navigation",
+      "title": "Confirm before navigating",
+      "description": "Show a confirmation dialog with the detected pagination target before clicking or navigating.",
+      "type": "checkbox",
+      "defaultValue": false
     }
   ]
 }
