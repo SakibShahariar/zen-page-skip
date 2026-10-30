@@ -19,7 +19,7 @@ Shortcut preferences accept modifier combinations such as:
 - `Cmd+Alt+Right` and `Cmd+Alt+Left`
 - `Super+N`, `Meta+N`, `Alt+N`, and `Alt+P`
 
-`Ctrl` and `Cmd`/`Meta`/`Super` are distinct modifiers. `Option` is an alias for `Alt`. Shortcut preferences are cached and refreshed when either shortcut setting changes.
+`Ctrl` and `Cmd`/`Meta`/`Super` are distinct modifiers. `Option` is an alias for `Alt`. Shortcut preferences are cached and refreshed when any shortcut setting changes.
 
 Set `zen-page-skip.cooldown-ms` to control the minimum time between shortcut actions. It defaults to `400` milliseconds; values are clamped to `0–5000` milliseconds.
 
@@ -27,7 +27,7 @@ Set `zen-page-skip.cooldown-ms` to control the minimum time between shortcut act
 
 The mod warns about malformed shortcuts, identical next/previous bindings, and common reserved browser combinations (for example `Ctrl+T`, `Ctrl+W`, and `Alt+Left`). Browser and operating-system bindings vary, so warnings are best-effort rather than a complete conflict detector.
 
-Run `copy(window.zenPageSkipGetShortcutWarnings().join("\\n"))` in the browser console to copy the current warnings.
+Run `copy(window.zenPageSkipGetShortcutWarnings().join("\n"))` in the browser console to copy the current warnings.
 
 ## How it works
 
@@ -52,7 +52,7 @@ If neither method works, it shows a toast such as **“No next page found”** o
 - `No previous page found`
 - `No active page`
 
-The mod tries Zen’s native toast system first. If that API is unavailable, it uses Firefox’s in-window notification bar.
+Feedback messages use Firefox’s in-window notification bar. Disable them or change their duration in Sine settings.
 
 ## Compatibility
 
@@ -79,6 +79,23 @@ Run the automated tests with Node.js:
 node --check script.js
 node --test
 ```
+
+## Settings
+
+All settings below are available in **Settings → Sine Mods → Zen Page Skip**. Structured site rules use JSON; other text preferences accept the formats described in their setting descriptions.
+
+| Setting | Purpose |
+|---|---|
+| Next / previous / jump shortcuts | Configure all three keyboard commands |
+| Disabled sites | Disable the mod for exact hosts or wildcard subdomains |
+| Shortcut cooldown | Set the minimum delay between actions |
+| Feedback toasts | Enable/disable messages and set their duration |
+| Confidence threshold | Adjust generic pagination candidate scoring |
+| Excluded selectors | Prevent matching controls from ever being clicked |
+| Local diagnostics | Enable local-only candidate and navigation logs |
+| Custom next/previous words | Add exact labels in other languages or site-specific wording |
+| Target preview | Confirm the detected destination before navigation |
+| Per-site rules | Configure selectors, labels, thresholds, URL templates, and infinite-scroll behavior |
 
 ## Settings backup and restore
 
