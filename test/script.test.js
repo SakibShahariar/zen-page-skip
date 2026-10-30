@@ -617,3 +617,26 @@ test("validates and clamps imported cooldown strings",()=>{
   assert.equal(rejected.success,false);
   assert.deepEqual(JSON.parse(JSON.stringify(rejected.rejected)),["cooldown-ms"]);
 });
+
+
+test("increments, decrements, and reads hash-based page numbers",()=>{
+  const {context}=load();
+  assert.equal(vm.runInContext("getPageNumberFromUrl('https://x.test/archive#page=4')",context),4);
+  assert.equal(vm.runInContext("getNumberedPageUrl('https://x.test/archive#page=4',1)",context),"https://x.test/archive#page=5");
+  assert.equal(vm.runInContext("getNumberedPageUrl('https://x.test/archive#page=4',-1)",context),"https://x.test/archive#page=3");
+  assert.equal(vm.runInContext("getNumberedPageUrl('https://x.test/archive#page=1',-1)",context),null);
+});
+
+test("validates hash-based numbered fallbacks against observed same-origin pages",()=>{
+  const {context}=load();
+  const document={querySelectorAll:()=>[
+    {href:"https://example.test/archive#page=1",getAttribute:()=>"#page=1"},
+    {href:"https://example.test/archive#page=3",getAttribute:() => "#page=3"}
+  ]};
+  const result=vm.runInContext(
+    "validateNumberedFallback('https://example.test/archive#page=2','https://example.test/archive#page=3',document)",
+    Object.assign(context,{document})
+  );
+  assert.equal(result.valid,true);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.observedPages)),[1,3]);
+});

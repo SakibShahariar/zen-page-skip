@@ -14,7 +14,7 @@ const PAGE_PATTERNS = [
   { regex: /([?&])page=(\d+)/i, build: (url, page) => url.replace(/([?&])page=\d+/i, `$1page=${page}`) },
   { regex: /([?&])p=(\d+)/i, build: (url, page) => url.replace(/([?&])p=\d+/i, `$1p=${page}`) },
   { regex: /\/page\/(\d+)/i, build: (url, page) => url.replace(/\/page\/\d+/i, `/page/${page}`) },
-  { regex: /#page=(\d+)/i, build: (url, page) => url.replace(/#page=\d+/i, `#page=${page}`) }
+  { regex: /(#page=)(\d+)/i, build: (url, page) => url.replace(/#page=\d+/i, `#page=${page}`) }
 ];
 
 function getPageNumberFromUrl(url) {

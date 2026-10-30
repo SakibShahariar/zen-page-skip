@@ -96,7 +96,7 @@
     {
       "name": "zen-page-skip.site-rules",
       "title": "Per-site pagination rules (JSON)",
-      "description": "JSON object keyed by hostname or *.example.com. Supports enabled, action (auto|click|url), nextSelector, previousSelector, nextWords, previousWords, confidenceThreshold, pageTemplate, and infiniteScroll (allow|block).",
+      "description": "JSON object keyed by hostname or *.example.com. Supports enabled, action (auto|click|url), nextSelector, previousSelector, nextWords, previousWords, confidenceThreshold, pageTemplate, infiniteScroll (allow|block), and hashMode (verify|allow|disable).",
       "type": "string",
       "defaultValue": ""
     }
