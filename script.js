@@ -66,7 +66,7 @@ function getPageDocument() {
 
 function normalizedText(element) {
   return (element?.getAttribute("aria-label") || element?.getAttribute("title") || element?.textContent || "")
-    .replace(/\\s+/g, " ")
+    .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();
 }

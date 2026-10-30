@@ -89,3 +89,9 @@ test("ignores repeated and IME composition events",()=>{
   listeners.keydown({...event,isComposing:false,repeat:true});
   assert.equal(prevented,0);
 });
+
+test("normalizes repeated whitespace and rejects substring-only labels",()=>{
+  const {context}=load();
+  const result=vm.runInContext("({label:normalizedText({getAttribute:()=>null,textContent:'  Next   page  '}),partial:matchesWords('next generation',NEXT_TEXT)})",context);
+  assert.deepEqual(JSON.parse(JSON.stringify(result)),{label:"next page",partial:false});
+});
