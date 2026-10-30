@@ -20,6 +20,13 @@
       "description": "Comma- or newline-separated hostnames. Use *.example.com to disable subdomains without disabling example.com itself.",
       "type": "string",
       "defaultValue": ""
+    },
+    {
+      "name": "zen-page-skip.cooldown-ms",
+      "title": "Shortcut cooldown (milliseconds)",
+      "description": "Minimum time between shortcut actions. Values from 0 to 5000 are accepted; default is 400.",
+      "type": "string",
+      "defaultValue": "400"
     }
   ]
 }

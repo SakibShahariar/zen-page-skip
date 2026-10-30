@@ -28,6 +28,8 @@ function getNumberedPageUrl(url, direction) {
   return null;
 }
 
+let lastShortcutAt = 0;
+
 const TOAST_ID = "zen-page-skip-toast";
 const TOAST_DURATION_MS = 1800;
 
@@ -57,6 +59,19 @@ function getDisabledSites() {
   } catch (error) {
     return [];
   }
+}
+
+function getCooldownMs() {
+  const value = Number(getShortcut("cooldown-ms", "400"));
+  if (!Number.isFinite(value)) return 400;
+  return Math.min(Math.max(Math.round(value), 0), 5000);
+}
+
+function isCooldownActive() {
+  const now = Date.now();
+  if (now - lastShortcutAt < getCooldownMs()) return true;
+  lastShortcutAt = now;
+  return false;
 }
 
 function isSiteDisabled(url) {
@@ -326,6 +341,7 @@ function onKeyDown(event) {
   const shortcuts = getShortcuts();
 
   if (matches(event, shortcuts.next)) {
+    if (isCooldownActive()) return;
     event.preventDefault();
     event.stopPropagation();
     jump(1);
@@ -333,6 +349,7 @@ function onKeyDown(event) {
   }
 
   if (matches(event, shortcuts.previous)) {
+    if (isCooldownActive()) return;
     event.preventDefault();
     event.stopPropagation();
     jump(-1);

@@ -109,3 +109,26 @@ test("canonicalizes trailing-dot hostnames",()=>{
   const result=vm.runInContext("({newline:isSiteDisabled('https://example.com'),wildcard:isSiteDisabled('https://a.blocked.test'),trailingDot:isSiteDisabled('https://example.com./')})",context);
   assert.deepEqual(JSON.parse(JSON.stringify(result)),{newline:true,wildcard:true,trailingDot:true});
 });
+
+test("applies a configurable cooldown that expires without a stuck lock",()=>{
+  const {context}=load();
+  context.fakeNow=1000;
+  vm.runInContext("Date.now = () => fakeNow",context);
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("cooldown-ms")?"500":fallback;
+  const first=vm.runInContext("isCooldownActive()",context);
+  context.fakeNow=1200;
+  const rapid=vm.runInContext("isCooldownActive()",context);
+  context.fakeNow=1500;
+  const afterExpiry=vm.runInContext("isCooldownActive()",context);
+  assert.deepEqual([first,rapid,afterExpiry],[false,true,false]);
+});
+
+test("clamps invalid cooldown preferences to safe bounds",()=>{
+  const {context}=load();
+  context.Services.prefs.getStringPref=()=> "9000";
+  assert.equal(vm.runInContext("getCooldownMs()",context),5000);
+  context.Services.prefs.getStringPref=()=> "-10";
+  assert.equal(vm.runInContext("getCooldownMs()",context),0);
+  context.Services.prefs.getStringPref=()=> "not-a-number";
+  assert.equal(vm.runInContext("getCooldownMs()",context),400);
+});

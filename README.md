@@ -20,6 +20,8 @@ Shortcut preferences accept modifier combinations such as:
 
 `Ctrl` and `Cmd`/`Meta`/`Super` are distinct modifiers. `Option` is an alias for `Alt`.
 
+Set `zen-page-skip.cooldown-ms` to control the minimum time between shortcut actions. It defaults to `400` milliseconds; values are clamped to `0–5000` milliseconds.
+
 ## How it works
 
 Zen Page Skip first checks for a page-navigation hint in the document head (`<link rel="next">` or `<link rel="prev">`). It then looks for the website’s own pagination control and clicks it. This works with many URL styles, including pages that do not put a page number in the URL.
