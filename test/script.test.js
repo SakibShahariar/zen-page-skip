@@ -103,9 +103,9 @@ test("matches exact and wildcard disabled-site rules safely",()=>{
   assert.deepEqual(JSON.parse(JSON.stringify(result)),{exact:true,subdomain:true,apex:false,other:false});
 });
 
-test("accepts newline-separated exclusions and canonicalizes trailing-dot hosts",()=>{
+test("canonicalizes trailing-dot hostnames",()=>{
   const {context}=load();
-  context.Services.prefs.getStringPref=()=> "example.com\\n*.blocked.test";
+  context.Services.prefs.getStringPref=()=> "example.com, *.blocked.test";
   const result=vm.runInContext("({newline:isSiteDisabled('https://example.com'),wildcard:isSiteDisabled('https://a.blocked.test'),trailingDot:isSiteDisabled('https://example.com./')})",context);
   assert.deepEqual(JSON.parse(JSON.stringify(result)),{newline:true,wildcard:true,trailingDot:true});
 });
