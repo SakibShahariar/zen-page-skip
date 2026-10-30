@@ -1,158 +1,80 @@
 # Zen Page Skip
 
-A Sine mod for [Zen Browser](https://zen-browser.app) that adds keyboard shortcuts to jump to the next or previous page.
+[![Tests](https://github.com/SakibShahariar/zen-page-skip/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/SakibShahariar/zen-page-skip/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+**Move through paginated websites without reaching for the mouse.**
+
+Zen Page Skip is a [Sine](https://github.com/CosmoCreeper/Sine) mod for [Zen Browser](https://zen-browser.app). It adds configurable keyboard shortcuts for next page, previous page, and jumping directly to a page number. It works with recognizable pagination controls as well as common numbered URL patterns.
+
+## Get started
+
+1. Install [Sine](https://github.com/CosmoCreeper/Sine) in Zen Browser.
+2. Open **Settings → Sine Mods**.
+3. Add this repository as a mod source:
+   `SakibShahariar/zen-page-skip`
+4. Install **Zen Page Skip** and restart Zen if prompted.
 
 ## Shortcuts
 
-| Action | Default shortcut | Preference |
-|---|---|---|
-| Next page | `Alt+]` | `zen-page-skip.next-shortcut` |
-| Previous page | `Alt+[` | `zen-page-skip.previous-shortcut` |
-| Jump to page | `Alt+Shift+P` | `zen-page-skip.jump-to-page-shortcut` |
+| Action | Default shortcut |
+|---|---|
+| Next page | `Alt + ]` |
+| Previous page | `Alt + [` |
+| Jump to page | `Alt + Shift + P` |
 
-Change these in **Settings → Sine Mods → Zen Page Skip**, or in `about:config`. The jump-to-page command prompts for a positive page number and works with the built-in numbered URL patterns.
+Change shortcuts in **Settings → Sine Mods → Zen Page Skip**. You can also edit the corresponding `zen-page-skip.*-shortcut` preferences in `about:config`.
 
-Shortcut preferences accept modifier combinations such as:
+Shortcuts support modifier combinations such as `Ctrl+Alt+Right`, `Cmd+Shift+N`, `Super+N`, and `Option+P`. Modifier names are case-insensitive. `Ctrl` and `Cmd`/`Meta`/`Super` are distinct; `Option` is an alias for `Alt`.
 
-- `Alt+]` and `Alt+[`
-- `Ctrl+Alt+Right` and `Ctrl+Alt+Left`
-- `Cmd+Alt+Right` and `Cmd+Alt+Left`
-- `Super+N`, `Meta+N`, `Alt+N`, and `Alt+P`
+Supported modifier names: `Ctrl`/`Control`, `Alt`/`Option`, `Shift`, and `Meta`/`Cmd`/`Command`/`Super`/`Win`/`Windows`. Arrow aliases include `Left`, `Right`, `Up`, and `Down`; key aliases include `Esc`, `Return`, and `Space`.
 
-`Ctrl` and `Cmd`/`Meta`/`Super` are distinct modifiers. `Option` is an alias for `Alt`. Shortcut preferences are cached and refreshed when any shortcut setting changes.
+The mod warns about invalid shortcuts, duplicate bindings, and common browser-shortcut conflicts. These checks are best-effort because browser and operating-system bindings vary. To copy the current warnings from the browser console:
 
-Set `zen-page-skip.cooldown-ms` to control the minimum time between shortcut actions. It defaults to `400` milliseconds; values are clamped to `0–5000` milliseconds.
-
-## Shortcut syntax
-
-- Modifiers: `Ctrl`/`Control`, `Alt`/`Option`, `Shift`, and `Meta`/`Cmd`/`Command`/`Super`/`Win`/`Windows`.
-- Arrow aliases: `Left`, `Right`, `Up`, and `Down` (or their `ArrowLeft`-style names).
-- Key aliases: `Esc`/`Escape`, `Return`/`Enter`, and `Space`/`Spacebar`.
-- Modifier names are case-insensitive. Malformed combinations and repeated modifiers are rejected.
-
-Examples: `Ctrl+Alt+Right`, `Cmd+Shift+N`, `Super+N`, and `Option+P`.
-
-## Shortcut conflicts
-
-The mod warns about malformed shortcuts, identical next/previous bindings, and common reserved browser combinations (for example `Ctrl+T`, `Ctrl+W`, and `Alt+Left`). Browser and operating-system bindings vary, so warnings are best-effort rather than a complete conflict detector.
-
-Run `copy(window.zenPageSkipGetShortcutWarnings().join("\n"))` in the browser console to copy the current warnings.
-
-## How it works
-
-Zen Page Skip first checks for a page-navigation hint in the document head (`<link rel="next">` or `<link rel="prev">`). It then looks for the website’s own pagination control and clicks it. This works with many URL styles, including pages that do not put a page number in the URL.
-
-Visible controls are matched using pagination labels, directional metadata, and pagination containers. Form controls, submit buttons, menu controls, and ambiguous generic links are ignored.
-
-If no usable pagination control is found, it falls back to changing a numbered URL:
-
-- `?page=3` → `?page=4`
-- `?p=3` → `?p=4`
-- `/page/3/` → `/page/4/`
-- `#page=3` → `#page=4`
-
-If neither method works, it shows a toast such as **“No next page found”** or **“No previous page found”**.
-
-## Toast messages
-
-- `Going to next page`
-- `Going to previous page`
-- `No next page found`
-- `No previous page found`
-- `No active page`
-
-When available, feedback uses Zen’s native toast API with the configured timeout. If the native API is unavailable or cannot create a toast, the mod falls back to Firefox’s in-window notification bar. Both paths respect the enable and duration settings.
-
-## SPA and browser history
-
-The mod does not cache page documents or pagination candidates. Each shortcut reads the selected tab’s current URI and content document again, so same-document route changes and browser back/forward updates are reflected when the site updates its URL and DOM. It does not intercept or replace a site’s own history/router APIs.
-
-## Compatibility
-
-Designed for Zen Browser with Sine. Navigation APIs are feature-detected at runtime; missing URI-navigation methods fail safely with a clear message instead of throwing. Other Firefox-based browsers are best-effort and are not claimed as runtime-verified.
-
-## Install
-
-1. Install [Sine](https://github.com/CosmoCreeper/Sine) in Zen Browser.
-2. Open **Settings → Sine Mods** in Zen.
-3. Add this repository:
-
-   ```text
-   SakibShahariar/zen-page-skip
-   ```
-
-4. Install **Zen Page Skip**.
-5. Restart Zen or clear its startup cache if needed.
-
-## Development
-
-Run the automated tests with Node.js:
-
-```sh
-node --check script.js
-node --test
+```js
+copy(window.zenPageSkipGetShortcutWarnings().join("\\n"))
 ```
+
+## What it can do
+
+- **Find site pagination:** checks `rel="next"`/`rel="prev"` hints and recognizable next/previous controls.
+- **Handle numbered URLs:** supports common `?page=3`, `?p=3`, `/page/3/`, and `#page=3` patterns.
+- **Adapt per site:** configure selectors, labels, URL templates, and action behavior for individual websites.
+- **Respect dynamic pages:** reads the selected tab's current URL and document for each action, so updated SPA routes and browser-history navigation are not tied to stale cached candidates.
+- **Avoid risky clicks:** filters out form controls, menu controls, destructive actions, disabled controls, and user-excluded selectors.
+- **Give useful feedback:** uses Zen's native toast when available and falls back to the browser notification bar.
+- **Support multilingual labels:** includes common pagination wording in English, Spanish, French, German, Portuguese, Dutch, Polish, Russian, Arabic, Chinese, Japanese, and Korean.
+
+If no safe pagination target is found, the mod reports that it could not find the requested page rather than guessing.
+
+## How navigation works
+
+Zen Page Skip prefers the website's own pagination control. It checks document navigation hints first, then looks for a suitable visible control using its label, directional metadata, and pagination context. If no control is available, it can use a recognized numbered URL pattern.
+
+Before using a numbered URL fallback, it checks same-origin numbered page links already present in the document. If those links show that the requested page is not available, the fallback is rejected. If no numbered links are present, the normal fallback remains available. The mod does not send HEAD or OPTIONS requests for this check.
+
+Hash-only navigation is treated separately. The default `verify` mode checks whether visible page content changes after the fragment changes; a fragment update by itself is not treated as proof that pagination succeeded.
 
 ## Settings
 
-All settings below are available in **Settings → Sine Mods → Zen Page Skip**. Structured site rules use JSON; other text preferences accept the formats described in their setting descriptions.
+The settings are available in **Settings → Sine Mods → Zen Page Skip**. Advanced users can edit the matching `zen-page-skip.*` preferences in `about:config`.
 
-| Setting | Purpose |
+| Setting | What it controls |
 |---|---|
-| Next / previous / jump shortcuts | Configure all three keyboard commands |
-| Disabled sites | Disable the mod for exact hosts or wildcard subdomains |
-| Shortcut cooldown | Set the minimum delay between actions |
-| Feedback toasts | Enable/disable messages and set their duration |
-| Confidence threshold | Adjust generic pagination candidate scoring |
-| Excluded selectors | Prevent matching controls from ever being clicked |
-| Local diagnostics | Enable local-only candidate and navigation logs |
-| Custom next/previous words | Add exact labels in other languages or site-specific wording |
-| Target preview | Confirm the detected destination before navigation |
-| Per-site rules | Configure selectors, labels, thresholds, URL templates, and infinite-scroll behavior |
+| Next / previous / jump shortcuts | Keyboard bindings for the three actions |
+| Disabled sites | Hostnames where the mod should not run |
+| Shortcut cooldown | Minimum delay between shortcut actions (default: 400 ms; range: 0–5000 ms) |
+| Feedback toasts | Whether feedback is shown and how long it remains visible (500–10000 ms; default: 1800 ms) |
+| Confidence threshold | Minimum score for generic pagination candidates (50–150; default: 70) |
+| Excluded control selectors | Newline-separated CSS selectors for controls that must not be clicked |
+| Local diagnostics | Opt-in candidate and navigation logging |
+| Additional next / previous labels | Comma- or newline-separated exact labels |
+| Confirm before navigating | Show a confirmation dialog before activating a target |
+| Per-site pagination rules | JSON rules for site-specific behavior |
 
-## Settings backup and restore
+### Per-site rules
 
-Export all supported settings from the browser console:
-
-```js
-copy(window.zenPageSkipExportSettings())
-```
-
-Import a previously exported JSON snapshot:
-
-```js
-window.zenPageSkipImportSettings(prompt("Paste Zen Page Skip settings JSON"))
-```
-
-Imports are versioned, validate known setting types, clamp numeric values, reject malformed shortcuts and site-rule JSON, and ignore unknown keys. Only settings present in the import are changed.
-
-## Local diagnostics
-
-Enable `zen-page-skip.debug-mode` to record candidate scores, rejection reasons, and navigation decisions in the browser console. Logs remain in memory and in the local console; no telemetry or network requests are made.
-
-To copy the recent diagnostic buffer from the browser console, run:
-
-```js
-copy(window.zenPageSkipGetDiagnostics())
-```
-
-The buffer is limited to the latest 100 entries. Disable debug mode for quiet normal operation.
-
-## Hash-based pagination
-
-Hash-only page changes are handled separately from full URL navigation. By default, the mod checks whether visible page content changes after the fragment update and reports when it does not. Per-site rules can set `hashMode` to `verify` (default), `allow` (explicitly trust the site but still warn that content may not change), or `disable`.
-
-## Numbered URL fallback validation
-
-Before incrementing a numbered URL, the mod checks same-origin page links already present in the document. If numbered links are visible but the requested page is not among them, the fallback is rejected. When no page links are available, existing URL fallback behavior is preserved. No HEAD/OPTIONS requests are sent; this avoids extra network traffic and credential/CORS side effects.
-
-## Infinite-scroll pages
-
-Pages marked with common feed or infinite-scroll indicators are not treated as numbered pagination unless an explicit pagination container or a site-specific selector is present. Override this per site with `"infiniteScroll": "allow"` or force the skip with `"infiniteScroll": "block"` in `zen-page-skip.site-rules`.
-
-## Per-site rules
-
-Set `zen-page-skip.site-rules` to a JSON object keyed by a hostname or wildcard subdomain. Example:
+Set `zen-page-skip.site-rules` to a JSON object keyed by a hostname or wildcard subdomain:
 
 ```json
 {
@@ -165,7 +87,8 @@ Set `zen-page-skip.site-rules` to a JSON object keyed by a hostname or wildcard 
     "previousWords": ["Newer results"],
     "confidenceThreshold": 85,
     "pageTemplate": "/archive/page/{page}",
-    "infiniteScroll": "allow"
+    "infiniteScroll": "allow",
+    "hashMode": "verify"
   },
   "*.forum.example": {
     "nextSelector": "button[aria-label='Next page']"
@@ -173,44 +96,75 @@ Set `zen-page-skip.site-rules` to a JSON object keyed by a hostname or wildcard 
 }
 ```
 
-Set `enabled` to `false` to disable the mod for a host. Set `action` to `auto` (default), `click` (require a matching control), or `url` (prefer the configured URL pattern). Site selectors take priority over generic detection but still pass the safety and exclusion checks. Invalid JSON or selectors are ignored. Per-site thresholds are clamped to 50–150. A `pageTemplate` must contain exactly one `{page}` placeholder and resolve to the same origin as the current page.
+Available options:
 
-## Language support
+| Option | Values | Description |
+|---|---|---|
+| `enabled` | `true` / `false` | Enable or disable the mod for this host |
+| `action` | `auto` / `click` / `url` | Automatically choose, require a matching control, or prefer URL navigation |
+| `nextSelector`, `previousSelector` | CSS selectors | Identify the site's pagination controls |
+| `nextWords`, `previousWords` | Arrays of strings | Add exact labels recognized on this site |
+| `confidenceThreshold` | 50–150 | Override generic candidate scoring |
+| `pageTemplate` | URL containing `{page}` | Define a custom numbered URL pattern |
+| `infiniteScroll` | `allow` / `block` | Override infinite-scroll detection |
+| `hashMode` | `verify` / `allow` / `disable` | Verify hash updates, trust the site's fragment behavior, or disable hash pagination |
 
-The built-in exact-label vocabulary includes common English, Spanish, French, German, Portuguese, Dutch, Polish, Russian, Arabic, Chinese, Japanese, and Korean pagination labels. Generic labels such as “back” and “continue” are intentionally not treated as pagination signals.
+A `pageTemplate` must contain exactly one `{page}` placeholder and resolve to the current page's origin. Wildcard rules such as `*.example.com` apply to subdomains, not the apex `example.com`. Site-specific selectors still pass the mod's safety and exclusion checks. Invalid JSON, selectors, and unsupported values are ignored.
 
-Add site-specific wording through `zen-page-skip.next-words` and `zen-page-skip.previous-words`. Values may be comma- or newline-separated and are matched case-insensitively.
+### Site exclusions
 
-## Pagination safety
+Use `zen-page-skip.disabled-sites` for a comma- or newline-separated list of hostnames:
 
-- `zen-page-skip.confidence-threshold` controls the minimum candidate score (50–150; default 70).
-- `zen-page-skip.excluded-selectors` accepts newline-separated CSS selectors for controls that must never be clicked.
-- Form buttons, dialogs, menu controls, and common destructive actions are excluded by default. Pagination links inside forms remain eligible.
+- `example.com` disables the exact hostname.
+- `*.example.com` disables its subdomains, but not `example.com` itself.
 
-## Target preview
+Invalid entries are ignored.
 
-Enable `zen-page-skip.preview-before-navigation` to confirm the detected destination before navigation. The preview is off by default, and query strings and URL fragments are omitted from displayed destinations. If the confirmation API is unavailable, navigation is cancelled safely.
+### Settings backup and restore
 
-## Toast settings
+Export the supported settings from the browser console:
 
-- `zen-page-skip.toast-enabled` controls whether feedback messages are shown.
-- `zen-page-skip.toast-duration-ms` controls the display duration (500–10000 ms; default 1800 ms).
+```js
+copy(window.zenPageSkipExportSettings())
+```
 
-The native Zen API accepts Fluent message IDs rather than raw text. Zen Page Skip supplies a stable internal ID, replaces the toast label with its dynamic message, and falls back to the browser notification bar if native toast creation fails.
+Import a previously exported snapshot:
 
-## Site exclusions
+```js
+window.zenPageSkipImportSettings(prompt("Paste Zen Page Skip settings JSON"))
+```
 
-Set `zen-page-skip.disabled-sites` in **Settings → Sine Mods → Zen Page Skip** or `about:config` to a comma- or newline-separated list of hostnames.
+Exports include a schema version. Imports validate known setting types, clamp supported numeric values, reject malformed shortcuts and site-rule JSON, and ignore unknown keys. Only settings included in the import are changed.
 
-- `example.com` disables only that exact hostname.
-- `*.example.com` disables its subdomains, but not the apex `example.com`.
-- Invalid entries are ignored.
+### Local diagnostics
 
-## Notes
+Enable `zen-page-skip.debug-mode` to log candidate scores, rejection reasons, and navigation decisions in the browser console. The diagnostic buffer is kept in memory and limited to the latest 100 entries. Copy it with:
 
-- Shortcut auto-repeat and IME composition events are ignored.
-- The mod avoids inputs, text areas, selects, and content-editable regions.
-- It cannot detect custom pagination with no accessible label, recognizable metadata, or pagination container.
+```js
+copy(window.zenPageSkipGetDiagnostics())
+```
+
+Diagnostics are off by default. The mod does not send telemetry or diagnostic data to a server.
+
+## Compatibility and limitations
+
+- Designed for **Zen Browser with Sine**.
+- Browser navigation APIs are feature-detected; unavailable methods fail safely where possible.
+- Other Firefox-based browsers may work, but are not claimed as runtime-verified.
+- Sites with custom pagination that has no accessible label, recognizable metadata, or pagination container may not be detectable.
+- Infinite-scroll feeds are not treated as numbered pagination unless an explicit pagination container or site-specific selector is present.
+- SPA and history changes are reflected when the site updates its URL and document. The mod does not replace or intercept the site's own router or history APIs.
+
+## Development
+
+Requires Node.js. Run the syntax check and automated regression tests:
+
+```sh
+node --check script.js
+node --test
+```
+
+GitHub Actions runs the same checks on pushes and pull requests to `main`, using Node.js 22.
 
 ## License
 
