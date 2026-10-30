@@ -98,7 +98,14 @@ test("normalizes repeated whitespace and rejects substring-only labels",()=>{
 
 test("matches exact and wildcard disabled-site rules safely",()=>{
   const {context}=load();
-  context.Services.prefs.getStringPref=()=> "example.com, *.blocked.test, invalid/path";
+  context.Services.prefs.getStringPref=()=> "example.com\n*.blocked.test, invalid/path";
   const result=vm.runInContext("({exact:isSiteDisabled('https://example.com/page/1'),subdomain:isSiteDisabled('https://shop.blocked.test'),apex:isSiteDisabled('https://blocked.test'),other:isSiteDisabled('https://other.test')})",context);
   assert.deepEqual(JSON.parse(JSON.stringify(result)),{exact:true,subdomain:true,apex:false,other:false});
+});
+
+test("accepts newline-separated exclusions and canonicalizes trailing-dot hosts",()=>{
+  const {context}=load();
+  context.Services.prefs.getStringPref=()=> "example.com\\n*.blocked.test";
+  const result=vm.runInContext("({newline:isSiteDisabled('https://example.com'),wildcard:isSiteDisabled('https://a.blocked.test'),trailingDot:isSiteDisabled('https://example.com./')})",context);
+  assert.deepEqual(JSON.parse(JSON.stringify(result)),{newline:true,wildcard:true,trailingDot:true});
 });
