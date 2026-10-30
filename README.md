@@ -61,7 +61,7 @@ If neither method works, it shows a toast such as **“No next page found”** o
 - `No previous page found`
 - `No active page`
 
-Feedback messages use Firefox’s in-window notification bar. Disable them or change their duration in Sine settings.
+When available, feedback uses Zen’s native toast API with the configured timeout. If the native API is unavailable or cannot create a toast, the mod falls back to Firefox’s in-window notification bar. Both paths respect the enable and duration settings.
 
 ## SPA and browser history
 

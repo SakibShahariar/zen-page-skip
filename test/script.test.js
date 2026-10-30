@@ -574,3 +574,32 @@ test("allows explicit hash mode overrides and blocks disabled site rules before 
   assert.equal(browser.contentWindow.location.hash,"#page=1");
   assert.equal(messages.includes("Disabled by this site's rule"),true);
 });
+
+test("passes enabled and duration preferences to Zen native toasts",async()=>{
+  const label={textContent:"",removeAttribute(){}};
+  const toast={_messageId:"zen-page-skip-toast",querySelector:()=>label};
+  const container={children:[toast]};
+  let nativeCall=null;
+  const {context}=load();
+  context.document={getElementById:()=>container};
+  context.window.gZenUIManager={showToast:(id,options)=>{nativeCall={id,options};return Promise.resolve()}};
+  context.Services.prefs.getBoolPref=()=>true;
+  context.Services.prefs.getIntPref=()=>2700;
+  vm.runInContext("showToast('native message')",context);
+  await Promise.resolve();
+  assert.deepEqual(nativeCall,{id:"zen-page-skip-toast",options:{timeout:2700}});
+  assert.equal(label.textContent,"native message");
+});
+
+test("falls back to the notification bar when the native toast API fails",()=>{
+  let appended=0, timeoutMs=0;
+  const box={PRIORITY_INFO_MEDIUM:1,getNotificationWithValue:()=>null,appendNotification:()=>{appended++;return {close(){}}}};
+  const {context}=load({gBrowser:{getNotificationBox:()=>box}});
+  context.window.gZenUIManager={showToast:()=>{throw Error("unsupported")}};
+  context.Services.prefs.getBoolPref=()=>true;
+  context.Services.prefs.getIntPref=()=>2400;
+  context.window.setTimeout=(_callback,ms)=>{timeoutMs=ms};
+  vm.runInContext("showToast('fallback message')",context);
+  assert.equal(appended,1);
+  assert.equal(timeoutMs,2400);
+});
