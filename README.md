@@ -69,6 +69,18 @@ node --check script.js
 node --test
 ```
 
+## Local diagnostics
+
+Enable `zen-page-skip.debug-mode` to record candidate scores, rejection reasons, and navigation decisions in the browser console. Logs remain in memory and in the local console; no telemetry or network requests are made.
+
+To copy the recent diagnostic buffer from the browser console, run:
+
+```js
+copy(window.zenPageSkipGetDiagnostics())
+```
+
+The buffer is limited to the latest 100 entries. Disable debug mode for quiet normal operation.
+
 ## Pagination safety
 
 - `zen-page-skip.confidence-threshold` controls the minimum candidate score (50–150; default 70).

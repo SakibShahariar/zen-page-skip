@@ -126,6 +126,32 @@ function getToastDuration() {
   }
 }
 
+function getDebugEnabled() {
+  try {
+    return Services.prefs.getBoolPref(PREF_BRANCH + "debug-mode", false);
+  } catch (error) {
+    return false;
+  }
+}
+
+const diagnosticEntries = [];
+function debugLog(event, details = {}) {
+  if (!getDebugEnabled()) return;
+  const entry = `${Date.now()} ${event} ${JSON.stringify(details)}`;
+  diagnosticEntries.push(entry);
+  if (diagnosticEntries.length > 100) diagnosticEntries.shift();
+  console.debug("[Zen Page Skip]", entry);
+}
+
+function getDiagnostics() {
+  return diagnosticEntries.join("\\n");
+}
+
+window.zenPageSkipGetDiagnostics = getDiagnostics;
+window.addEventListener("unload", () => {
+  if (window.zenPageSkipGetDiagnostics === getDiagnostics) delete window.zenPageSkipGetDiagnostics;
+}, { once: true });
+
 function getConfidenceThreshold() {
   try {
     const value = Services.prefs.getIntPref(PREF_BRANCH + "confidence-threshold", 70);
@@ -262,11 +288,19 @@ function findPaginationControl(direction) {
   const symbols = direction === 1 ? NEXT_SYMBOLS : PREVIOUS_SYMBOLS;
   const candidates = Array.from(document.querySelectorAll('a, button, [role="button"]'));
   const scored = [];
+  const threshold = getConfidenceThreshold();
 
   for (const element of candidates) {
-    if (!isSafeNavigationControl(element) || isExcludedByUserSelector(element, document)) continue;
-
     const text = normalizedText(element);
+    if (!isSafeNavigationControl(element)) {
+      debugLog("candidate-rejected", { label: text, reason: "unsafe-control" });
+      continue;
+    }
+    if (isExcludedByUserSelector(element, document)) {
+      debugLog("candidate-rejected", { label: text, reason: "user-excluded-selector" });
+      continue;
+    }
+
     const exactLabel = matchesWords(text, words);
     const symbolLabel = symbols.includes(text);
     const inPagination = isInPaginationContext(element);
@@ -275,8 +309,14 @@ function findPaginationControl(direction) {
     const directionalMetadata = new RegExp(direction === 1 ? "(?:^|[-_ ])next(?:$|[-_ ])" : "(?:^|[-_ ])(?:prev|previous)(?:$|[-_ ])").test(metadata);
     const specificLabel = text.includes("page");
 
-    if (!rel && !inPagination && !directionalMetadata && !specificLabel) continue;
-    if (!exactLabel && !symbolLabel && !rel && !directionalMetadata) continue;
+    if (!rel && !inPagination && !directionalMetadata && !specificLabel) {
+      debugLog("candidate-rejected", { label: text, reason: "no-pagination-context" });
+      continue;
+    }
+    if (!exactLabel && !symbolLabel && !rel && !directionalMetadata) {
+      debugLog("candidate-rejected", { label: text, reason: "no-directional-signal" });
+      continue;
+    }
 
     let score = 0;
     if (rel) score += 120;
@@ -285,11 +325,15 @@ function findPaginationControl(direction) {
     if (inPagination) score += 35;
     if (directionalMetadata) score += 25;
     if (element.tagName === "A" && element.getAttribute("href")) score += 10;
-    if (score >= getConfidenceThreshold()) scored.push({ element, score });
+    const accepted = score >= threshold;
+    debugLog("candidate-scored", { label: text, tag: element.tagName, score, threshold, accepted });
+    if (accepted) scored.push({ element, score });
   }
 
   scored.sort((a, b) => b.score - a.score);
-  return scored[0]?.element ?? null;
+  const selected = scored[0]?.element ?? null;
+  debugLog(selected ? "control-selected" : "no-control-selected", selected ? { label: normalizedText(selected), tag: selected.tagName } : {});
+  return selected;
 }
 
 function showToast(message) {
@@ -321,15 +365,18 @@ function navigate(tab, url) {
 }
 
 function jump(direction) {
+  debugLog("navigation-requested", { direction: direction === 1 ? "next" : "previous" });
   const tab = getActiveTab();
   const url = getCurrentUrl();
 
   if (!tab || !url) {
+    debugLog("navigation-aborted", { reason: "no-active-page" });
     showToast("No active page");
     return;
   }
 
   if (isSiteDisabled(url)) {
+    debugLog("navigation-aborted", { reason: "site-disabled", host: new URL(url).hostname });
     showToast("Zen Page Skip disabled on this site");
     return;
   }
@@ -338,6 +385,7 @@ function jump(direction) {
   if (document) {
     const relUrl = findRelPaginationUrl(direction, document, url);
     if (relUrl) {
+      debugLog("head-rel-navigation", { target: new URL(relUrl).origin + new URL(relUrl).pathname });
       navigate(tab, relUrl);
       showToast(direction === 1 ? "Going to next page" : "Going to previous page");
       return;
@@ -356,11 +404,13 @@ function jump(direction) {
   const nextUrl = getNumberedPageUrl(url, direction);
 
   if (nextUrl) {
+    debugLog("url-fallback", { target: new URL(nextUrl).origin + new URL(nextUrl).pathname });
     navigate(tab, nextUrl);
     showToast(direction === 1 ? "Going to next page" : "Going to previous page");
     return;
   }
 
+  debugLog("navigation-aborted", { reason: "no-pagination-target" });
   showToast(direction === 1 ? "No next page found" : "No previous page found");
 }
 

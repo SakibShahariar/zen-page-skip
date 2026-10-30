@@ -205,3 +205,25 @@ test("caches shortcut preferences and invalidates them on preference changes",()
   vm.runInContext("getShortcuts()",context);
   assert.equal(reads,4);
 });
+
+test("keeps diagnostics disabled by default and exposes opt-in local logs",()=>{
+  const {context}=load();
+  let logs=0;
+  context.console.debug=()=>{logs++};
+  context.Services.prefs.getBoolPref=()=>false;
+  vm.runInContext("debugLog('quiet')",context);
+  assert.equal(logs,0);
+  context.Services.prefs.getBoolPref=()=>true;
+  vm.runInContext("debugLog('candidate-scored',{score:80})",context);
+  assert.equal(logs,1);
+  assert.match(vm.runInContext("getDiagnostics()",context),/candidate-scored/);
+});
+
+test("bounds diagnostic history to the most recent 100 entries",()=>{
+  const {context}=load();
+  context.Services.prefs.getBoolPref=()=>true;
+  vm.runInContext("for(let i=0;i<105;i++) debugLog('entry',{i})",context);
+  const result=vm.runInContext("getDiagnostics()",context);
+  assert.equal(result.split("\\n").length,100);
+  assert.doesNotMatch(result,/entry.*\\\"i\\\":0/);
+});

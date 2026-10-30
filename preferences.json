@@ -57,6 +57,13 @@
       "description": "Optional newline-separated CSS selectors. Matching controls and their descendants are ignored.",
       "type": "string",
       "defaultValue": ""
+    },
+    {
+      "name": "zen-page-skip.debug-mode",
+      "title": "Enable local diagnostics",
+      "description": "Log pagination candidates and navigation decisions locally. No data is sent anywhere.",
+      "type": "checkbox",
+      "defaultValue": false
     }
   ]
 }
