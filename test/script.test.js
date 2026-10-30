@@ -448,3 +448,38 @@ test("rejects unsafe or malformed custom URL templates",()=>{
   }):fallback;
   assert.equal(vm.runInContext("getCustomPageUrl('https://example.test/page/2/3',4)",context),null);
 });
+
+test("supports per-site enable/disable and action overrides",()=>{
+  const {context}=load();
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?JSON.stringify({
+    "example.test":{enabled:false,action:"click"},
+    "*.sub.test":{enabled:true,action:"url"}
+  }):fallback;
+  const disabled=vm.runInContext("getSiteRule('https://example.test/page/1')",context);
+  const wildcard=vm.runInContext("getSiteRule('https://shop.sub.test/page/1')",context);
+  assert.equal(disabled.enabled,false);
+  assert.equal(disabled.action,"click");
+  assert.equal(wildcard.enabled,true);
+  assert.equal(wildcard.action,"url");
+});
+
+test("site action url skips controls while click mode refuses URL fallback",()=>{
+  const {context}=load();
+  let loaded=null, clicked=0;
+  const browser={currentURI:{spec:"https://example.test/?page=2"},contentDocument:{querySelectorAll:()=>[]},loadURI:(uri)=>{loaded=uri}};
+  context.window.gBrowser={selectedTab:{linkedBrowser:browser}};
+  context.Services.getBoolPref=()=>false;
+  context.Services.prefs.getBoolPref=()=>false;
+  context.Services.scriptSecurityManager.getSystemPrincipal=()=>({});
+  context.Services.io.newURI=(value)=>value;
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?JSON.stringify({"example.test":{enabled:true,action:"url"}}):fallback;
+  vm.runInContext("findPaginationControl = () => ({click(){clicked++}})",Object.assign(context,{clicked:0}));
+  vm.runInContext("jump(1)",context);
+  assert.equal(loaded,"https://example.test/?page=3");
+
+  loaded=null;
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?JSON.stringify({"example.test":{enabled:true,action:"click"}}):fallback;
+  vm.runInContext("findPaginationControl = () => null",context);
+  vm.runInContext("jump(1)",context);
+  assert.equal(loaded,null);
+});

@@ -524,7 +524,9 @@ function getSiteRule(url) {
       previousWords: cleanWords(rule.previousWords),
       confidenceThreshold: Number.isInteger(rule.confidenceThreshold) ? Math.min(Math.max(rule.confidenceThreshold, 50), 150) : null,
       infiniteScroll: rule.infiniteScroll === "allow" || rule.infiniteScroll === "block" ? rule.infiniteScroll : null,
-      pageTemplate: typeof rule.pageTemplate === "string" && rule.pageTemplate.length <= 512 ? rule.pageTemplate : ""
+      pageTemplate: typeof rule.pageTemplate === "string" && rule.pageTemplate.length <= 512 ? rule.pageTemplate : "",
+      enabled: typeof rule.enabled === "boolean" ? rule.enabled : null,
+      action: ["auto", "click", "url"].includes(rule.action) ? rule.action : "auto"
     };
   } catch (error) {
     debugLog("site-rules-invalid", {});
@@ -700,6 +702,10 @@ function jumpToPage() {
     showToast("Zen Page Skip disabled on this site");
     return;
   }
+  if (getSiteRule(url)?.enabled === false) {
+    showToast("Disabled by this site's rule");
+    return;
+  }
   if (typeof Services.prompt?.prompt !== "function") {
     showToast("Page-number prompt unavailable");
     return;
@@ -779,13 +785,22 @@ function jump(direction) {
   }
 
   const siteRule = getSiteRule(url);
+  if (siteRule?.enabled === false) {
+    showToast("Disabled by this site's rule");
+    return;
+  }
   if (document && shouldSkipInfiniteScroll(document, siteRule)) {
     debugLog("navigation-aborted", { reason: "infinite-scroll-page" });
     showToast("Infinite-scroll page detected; no numbered pagination found");
     return;
   }
 
-  const control = findPaginationControl(direction);
+  const action = siteRule?.action || "auto";
+  const control = action === "url" ? null : findPaginationControl(direction);
+  if (action === "click" && !control) {
+    showToast("No configured pagination control found");
+    return;
+  }
 
   if (control) {
     const label = normalizedText(control) || "pagination control";

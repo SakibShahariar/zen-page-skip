@@ -145,6 +145,8 @@ Set `zen-page-skip.site-rules` to a JSON object keyed by a hostname or wildcard 
 ```json
 {
   "example.com": {
+    "enabled": true,
+    "action": "auto",
     "nextSelector": "a.pagination-next",
     "previousSelector": "a.pagination-previous",
     "nextWords": ["Load more"],
@@ -159,7 +161,7 @@ Set `zen-page-skip.site-rules` to a JSON object keyed by a hostname or wildcard 
 }
 ```
 
-Site selectors take priority over generic detection but still pass the safety and exclusion checks. Invalid JSON or selectors are ignored. Per-site thresholds are clamped to 50–150. A `pageTemplate` must contain exactly one `{page}` placeholder and resolve to the same origin as the current page.
+Set `enabled` to `false` to disable the mod for a host. Set `action` to `auto` (default), `click` (require a matching control), or `url` (prefer the configured URL pattern). Site selectors take priority over generic detection but still pass the safety and exclusion checks. Invalid JSON or selectors are ignored. Per-site thresholds are clamped to 50–150. A `pageTemplate` must contain exactly one `{page}` placeholder and resolve to the same origin as the current page.
 
 ## Language support
 
