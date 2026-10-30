@@ -161,3 +161,32 @@ test("clamps toast duration and falls back when the preference is unavailable",(
   context.Services.prefs.getIntPref=()=>{throw Error("missing")};
   assert.equal(vm.runInContext("getToastDuration()",context),1800);
 });
+
+test("clamps the configurable pagination confidence threshold",()=>{
+  const {context}=load();
+  context.Services.prefs.getIntPref=()=>40;
+  assert.equal(vm.runInContext("getConfidenceThreshold()",context),50);
+  context.Services.prefs.getIntPref=()=>200;
+  assert.equal(vm.runInContext("getConfidenceThreshold()",context),150);
+  context.Services.prefs.getIntPref=()=>100;
+  assert.equal(vm.runInContext("getConfidenceThreshold()",context),100);
+});
+
+test("excludes destructive controls, dialogs, and configured selectors",()=>{
+  const {context}=load();
+  const remove=el({tagName:"BUTTON",text:"Delete",pagination:true});
+  const dialog=el({tagName:"BUTTON",text:"Next page",pagination:true});
+  dialog.closest=(selector)=>selector.includes("dialog")?{}:null;
+  const custom={matches:(selector)=>selector===".danger",closest:()=>null};
+  context.Services.prefs.getStringPref=()=>".danger";
+  const result=vm.runInContext("({remove:isSafeNavigationControl(remove),dialog:isSafeNavigationControl(dialog),custom:isExcludedByUserSelector(custom,document)})",Object.assign(context,{remove,dialog,custom,document:{}}));
+  assert.deepEqual(JSON.parse(JSON.stringify(result)),{remove:false,dialog:false,custom:true});
+});
+
+test("keeps pagination anchors inside forms but rejects form buttons",()=>{
+  const {context}=load();
+  const anchor=el({tagName:"A",attrs:{href:"/page/2"},pagination:true,form:true});
+  const button=el({tagName:"BUTTON",pagination:true,form:true});
+  const result=vm.runInContext("({anchor:isSafeNavigationControl(anchor),button:isSafeNavigationControl(button)})",Object.assign(context,{anchor,button}));
+  assert.deepEqual(JSON.parse(JSON.stringify(result)),{anchor:true,button:false});
+});

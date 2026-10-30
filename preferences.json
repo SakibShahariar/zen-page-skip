@@ -42,6 +42,21 @@
       "type": "string",
       "value": "num",
       "defaultValue": 1800
+    },
+    {
+      "name": "zen-page-skip.confidence-threshold",
+      "title": "Pagination confidence threshold",
+      "description": "Minimum candidate score from 50 to 150. Higher values reduce false positives; default is 70.",
+      "type": "string",
+      "value": "num",
+      "defaultValue": 70
+    },
+    {
+      "name": "zen-page-skip.excluded-selectors",
+      "title": "Excluded control selectors",
+      "description": "Optional newline-separated CSS selectors. Matching controls and their descendants are ignored.",
+      "type": "string",
+      "defaultValue": ""
     }
   ]
 }

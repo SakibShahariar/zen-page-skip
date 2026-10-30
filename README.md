@@ -69,6 +69,12 @@ node --check script.js
 node --test
 ```
 
+## Pagination safety
+
+- `zen-page-skip.confidence-threshold` controls the minimum candidate score (50–150; default 70).
+- `zen-page-skip.excluded-selectors` accepts newline-separated CSS selectors for controls that must never be clicked.
+- Form buttons, dialogs, menu controls, and common destructive actions are excluded by default. Pagination links inside forms remain eligible.
+
 ## Feedback toasts
 
 - `zen-page-skip.toast-enabled` controls whether feedback messages are shown.

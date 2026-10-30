@@ -91,6 +91,38 @@ function getToastDuration() {
   }
 }
 
+function getConfidenceThreshold() {
+  try {
+    const value = Services.prefs.getIntPref(PREF_BRANCH + "confidence-threshold", 70);
+    return Math.min(Math.max(value, 50), 150);
+  } catch (error) {
+    return 70;
+  }
+}
+
+function getExcludedSelectors() {
+  try {
+    return Services.prefs.getStringPref(PREF_BRANCH + "excluded-selectors", "")
+      .split(String.fromCharCode(10))
+      .map((selector) => selector.trim())
+      .filter(Boolean)
+      .slice(0, 25);
+  } catch (error) {
+    return [];
+  }
+}
+
+function isExcludedByUserSelector(element, document) {
+  for (const selector of getExcludedSelectors()) {
+    try {
+      if (element.matches(selector) || element.closest(selector)) return true;
+    } catch (error) {
+      // Ignore invalid selectors without disabling the remaining rules.
+    }
+  }
+  return false;
+}
+
 function isSiteDisabled(url) {
   let hostname;
   try {
@@ -152,10 +184,17 @@ function isInPaginationContext(element) {
 
 function isSafeNavigationControl(element) {
   const tag = element.tagName?.toLowerCase();
-  if (!["a", "button"].includes(tag) && element.getAttribute("role") !== "button") return false;
+  const role = element.getAttribute("role");
+  if (!["a", "button"].includes(tag) && role !== "button") return false;
   if (isDisabled(element) || element.hasAttribute("download")) return false;
-  if (element.closest("form") || element.getAttribute("aria-haspopup") || element.getAttribute("aria-expanded") === "true") return false;
-  if (["menuitem", "menuitemcheckbox", "menuitemradio"].includes(element.getAttribute("role"))) return false;
+  if (tag !== "a" && element.closest("form")) return false;
+  if (element.getAttribute("aria-haspopup") || element.getAttribute("aria-expanded") === "true") return false;
+  if (["dialog", "menuitem", "menuitemcheckbox", "menuitemradio"].includes(role)) return false;
+  if (element.closest('dialog, [role="dialog"]')) return false;
+
+  const label = normalizedText(element);
+  const destructiveLabels = ["delete", "remove", "unsubscribe", "purchase", "buy", "pay", "submit", "confirm", "cancel", "logout", "log out", "sign out", "archive"];
+  if (destructiveLabels.some((word) => label === word || label.startsWith(word + " ") || label.endsWith(" " + word))) return false;
 
   if (tag === "a") {
     const href = element.getAttribute("href")?.trim();
@@ -190,7 +229,7 @@ function findPaginationControl(direction) {
   const scored = [];
 
   for (const element of candidates) {
-    if (!isSafeNavigationControl(element)) continue;
+    if (!isSafeNavigationControl(element) || isExcludedByUserSelector(element, document)) continue;
 
     const text = normalizedText(element);
     const exactLabel = matchesWords(text, words);
@@ -211,7 +250,7 @@ function findPaginationControl(direction) {
     if (inPagination) score += 35;
     if (directionalMetadata) score += 25;
     if (element.tagName === "A" && element.getAttribute("href")) score += 10;
-    if (score >= 70) scored.push({ element, score });
+    if (score >= getConfidenceThreshold()) scored.push({ element, score });
   }
 
   scored.sort((a, b) => b.score - a.score);
