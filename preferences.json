@@ -85,6 +85,13 @@
       "description": "Show a confirmation dialog with the detected pagination target before clicking or navigating.",
       "type": "checkbox",
       "defaultValue": false
+    },
+    {
+      "name": "zen-page-skip.jump-to-page-shortcut",
+      "title": "Jump to page shortcut",
+      "description": "Opens a page-number prompt for supported numbered URL patterns.",
+      "type": "string",
+      "defaultValue": "Alt+Shift+P"
     }
   ]
 }

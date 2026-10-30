@@ -3,6 +3,7 @@
 const PREF_BRANCH = "zen-page-skip.";
 const DEFAULT_NEXT_SHORTCUT = "Alt+]";
 const DEFAULT_PREVIOUS_SHORTCUT = "Alt+[";
+const DEFAULT_JUMP_SHORTCUT = "Alt+Shift+P";
 
 const NEXT_TEXT = ["next", "next page", "go to next page", "older", "older posts", "siguiente", "siguiente página", "suivant", "prochain", "weiter", "nächste", "próximo", "próxima", "下一页", "下页", "次へ", "次のページ", "다음", "다음 페이지", "التالي", "الصفحة التالية", "следующая", "следующий", "следующая страница", "następna", "następna strona", "volgende", "pagina successiva", "prossimo"];
 const PREVIOUS_TEXT = ["previous", "prev", "previous page", "go to previous page", "newer", "newer posts", "anterior", "página anterior", "précédent", "précédente", "zurück", "vorherige", "上一页", "前一页", "前へ", "前のページ", "이전", "이전 페이지", "السابق", "الصفحة السابقة", "предыдущая", "предыдущий", "предыдущая страница", "poprzednia", "poprzednia strona", "vorige", "pagina precedente", "precedente"];
@@ -24,6 +25,14 @@ function getNumberedPageUrl(url, direction) {
     if (!Number.isSafeInteger(nextPage) || nextPage < 1) return null;
     const candidate = pattern.build(url, nextPage);
     return candidate !== url ? candidate : null;
+  }
+  return null;
+}
+
+function getSpecificPageUrl(url, page) {
+  if (!Number.isSafeInteger(page) || page < 1 || page > 1000000) return null;
+  for (const pattern of PAGE_PATTERNS) {
+    if (url.match(pattern.regex)) return pattern.build(url, page);
   }
   return null;
 }
@@ -50,7 +59,8 @@ function getShortcuts() {
   if (shortcutObserversRegistered && cachedShortcuts) return cachedShortcuts;
   const shortcuts = {
     next: getShortcut("next-shortcut", DEFAULT_NEXT_SHORTCUT),
-    previous: getShortcut("previous-shortcut", DEFAULT_PREVIOUS_SHORTCUT)
+    previous: getShortcut("previous-shortcut", DEFAULT_PREVIOUS_SHORTCUT),
+    jump: getShortcut("jump-to-page-shortcut", DEFAULT_JUMP_SHORTCUT)
   };
   if (shortcutObserversRegistered) cachedShortcuts = shortcuts;
   return shortcuts;
@@ -58,7 +68,7 @@ function getShortcuts() {
 
 function observeShortcutPreferences() {
   if (typeof Services.prefs.addObserver !== "function") return;
-  const names = ["next-shortcut", "previous-shortcut"].map((name) => PREF_BRANCH + name);
+  const names = ["next-shortcut", "previous-shortcut", "jump-to-page-shortcut"].map((name) => PREF_BRANCH + name);
   const observer = {
     observe(_subject, topic, data) {
       if (topic === "nsPref:changed" && names.includes(data)) {
@@ -465,6 +475,60 @@ function navigate(tab, url) {
   return false;
 }
 
+
+function jumpToPage() {
+  const tab = getActiveTab();
+  const url = getCurrentUrl();
+  if (!tab || !url) {
+    showToast("No active page");
+    return;
+  }
+  if (isSiteDisabled(url)) {
+    showToast("Zen Page Skip disabled on this site");
+    return;
+  }
+  if (typeof Services.prompt?.prompt !== "function") {
+    showToast("Page-number prompt unavailable");
+    return;
+  }
+
+  const input = { value: "" };
+  let accepted = false;
+  try {
+    accepted = Services.prompt.prompt(window, "Zen Page Skip", "Enter the page number:", input, null, null);
+  } catch (error) {
+    debugLog("page-prompt-failed", { message: String(error) });
+    showToast("Page-number prompt unavailable");
+    return;
+  }
+  if (!accepted) return;
+
+  const value = String(input.value || "").trim();
+  const page = Number(value);
+  if (!/^\d+$/.test(value) || !Number.isSafeInteger(page) || page < 1 || page > 1000000) {
+    showToast("Enter a valid positive page number");
+    return;
+  }
+  const target = getSpecificPageUrl(url, page);
+  if (!target) {
+    showToast("No supported page-number URL pattern found");
+    return;
+  }
+  if (target === url) {
+    showToast("Already on that page");
+    return;
+  }
+  if (!confirmNavigation(describeNavigationTarget(target))) {
+    showToast("Navigation cancelled");
+    return;
+  }
+  if (!navigate(tab, target)) {
+    showToast("Navigation unavailable in this browser");
+    return;
+  }
+  showToast("Going to page " + page);
+}
+
 function jump(direction) {
   debugLog("navigation-requested", { direction: direction === 1 ? "next" : "previous" });
   const tab = getActiveTab();
@@ -588,31 +652,35 @@ function shortcutSignature(shortcut) {
 
 function getShortcutWarnings() {
   const shortcuts = getShortcuts();
+  const entries = [
+    ["next-page", shortcuts.next],
+    ["previous-page", shortcuts.previous],
+    ["jump-to-page", shortcuts.jump]
+  ];
   const warnings = [];
-  const next = parseShortcut(shortcuts.next);
-  const previous = parseShortcut(shortcuts.previous);
-
-  if (!next) warnings.push(`Invalid next-page shortcut: ${shortcuts.next}`);
-  if (!previous) warnings.push(`Invalid previous-page shortcut: ${shortcuts.previous}`);
-  if (next && previous && shortcutSignature(shortcuts.next) === shortcutSignature(shortcuts.previous)) {
-    warnings.push("Next-page and previous-page shortcuts are identical.");
+  for (const entry of entries) {
+    if (!parseShortcut(entry[1])) warnings.push("Invalid " + entry[0] + " shortcut: " + entry[1]);
   }
-
+  for (let i = 0; i < entries.length; i++) {
+    for (let j = i + 1; j < entries.length; j++) {
+      const first = shortcutSignature(entries[i][1]);
+      const second = shortcutSignature(entries[j][1]);
+      if (first && first === second) warnings.push(entries[i][0] + " and " + entries[j][0] + " shortcuts are identical.");
+    }
+  }
   const reserved = [
     "Ctrl+T", "Ctrl+W", "Ctrl+N", "Ctrl+Q", "Ctrl+L", "Ctrl+R", "Ctrl+F", "Ctrl+H", "Ctrl+J",
-    "Ctrl+Shift+T", "Ctrl+Tab", "Ctrl+Shift+Tab", "Alt+Left", "Alt+Right",
+    "Ctrl+Shift+T", "Ctrl+Shift+P", "Ctrl+Tab", "Ctrl+Shift+Tab", "Alt+Left", "Alt+Right",
     "Meta+T", "Meta+W", "Meta+N", "Meta+Q", "Meta+L", "Meta+R", "Meta+F", "Meta+H", "Meta+J",
-    "Meta+Shift+T"
+    "Meta+Shift+T", "Meta+Shift+P"
   ];
   const reservedSignatures = new Set(reserved.map(shortcutSignature));
-  for (const [action, value] of [["next-page", shortcuts.next], ["previous-page", shortcuts.previous]]) {
-    if (shortcutSignature(value) && reservedSignatures.has(shortcutSignature(value))) {
-      warnings.push(`${action} shortcut ${value} conflicts with a common browser shortcut.`);
-    }
+  for (const entry of entries) {
+    const signature = shortcutSignature(entry[1]);
+    if (signature && reservedSignatures.has(signature)) warnings.push(entry[0] + " shortcut " + entry[1] + " conflicts with a common browser shortcut.");
   }
   return warnings;
 }
-
 function reportShortcutWarnings() {
   for (const warning of getShortcutWarnings()) console.warn("[Zen Page Skip]", warning);
 }
@@ -654,6 +722,14 @@ function onKeyDown(event) {
     event.preventDefault();
     event.stopPropagation();
     jump(-1);
+    return;
+  }
+
+  if (matches(event, shortcuts.jump)) {
+    if (isCooldownActive()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    jumpToPage();
   }
 }
 

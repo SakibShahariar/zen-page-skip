@@ -200,10 +200,10 @@ test("caches shortcut preferences and invalidates them on preference changes",()
   vm.runInContext("observeShortcutPreferences()",context);
   vm.runInContext("getShortcuts()",context);
   vm.runInContext("getShortcuts()",context);
-  assert.equal(reads,2);
+  assert.equal(reads,3);
   observer.observe(null,"nsPref:changed","zen-page-skip.next-shortcut");
   vm.runInContext("getShortcuts()",context);
-  assert.equal(reads,4);
+  assert.equal(reads,6);
 });
 
 test("keeps diagnostics disabled by default and exposes opt-in local logs",()=>{
@@ -312,4 +312,41 @@ test("keeps malformed relative-control previews from throwing",()=>{
   const {context}=load();
   assert.equal(vm.runInContext("describeControlTarget('http://[','https://example.test/page/1','Next')",context),"Next");
   assert.equal(vm.runInContext("describeControlTarget('/page/2','https://example.test/page/1','Next')",context),"Next: https://example.test/page/2");
+});
+
+test("builds direct URLs for every supported page-number pattern",()=>{
+  const {context}=load();
+  const values=vm.runInContext("['https://x.test/?page=2','https://x.test/?p=2','https://x.test/page/2/','https://x.test/#page=2'].map(url=>getSpecificPageUrl(url,7))",context);
+  assert.deepEqual(JSON.parse(JSON.stringify(values)),["https://x.test/?page=7","https://x.test/?p=7","https://x.test/page/7/","https://x.test/#page=7"]);
+  assert.equal(vm.runInContext("getSpecificPageUrl('https://x.test/no-pages',7)",context),null);
+  assert.equal(vm.runInContext("getSpecificPageUrl('https://x.test/?page=2',0)",context),null);
+});
+
+test("prompts for a page number and navigates only after valid input",()=>{
+  const {context}=load();
+  let loaded=null;
+  const browser={currentURI:{spec:"https://example.test/?page=2"},loadURI:(uri)=>{loaded=uri}};
+  context.window.gBrowser={selectedTab:{linkedBrowser:browser}};
+  context.Services.prompt={prompt:(_window,_title,_message,input)=>{input.value="4";return true}};
+  context.Services.scriptSecurityManager.getSystemPrincipal=()=>({});
+  context.Services.io.newURI=(value)=>value;
+  context.Services.prefs.getBoolPref=()=>false;
+  vm.runInContext("jumpToPage()",context);
+  assert.equal(loaded,"https://example.test/?page=4");
+});
+
+test("rejects invalid page numbers and respects prompt cancellation",()=>{
+  const {context}=load();
+  let loaded=null;
+  const browser={currentURI:{spec:"https://example.test/?page=2"},loadURI:(uri)=>{loaded=uri}};
+  context.window.gBrowser={selectedTab:{linkedBrowser:browser}};
+  context.Services.scriptSecurityManager.getSystemPrincipal=()=>({});
+  context.Services.io.newURI=(value)=>value;
+  context.Services.prefs.getBoolPref=()=>false;
+  context.Services.prompt={prompt:(_window,_title,_message,input)=>{input.value="0";return true}};
+  vm.runInContext("jumpToPage()",context);
+  assert.equal(loaded,null);
+  context.Services.prompt.prompt=()=>false;
+  vm.runInContext("jumpToPage()",context);
+  assert.equal(loaded,null);
 });

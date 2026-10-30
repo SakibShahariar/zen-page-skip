@@ -8,8 +8,9 @@ A Sine mod for [Zen Browser](https://zen-browser.app) that adds keyboard shortcu
 |---|---|---|
 | Next page | `Alt+]` | `zen-page-skip.next-shortcut` |
 | Previous page | `Alt+[` | `zen-page-skip.previous-shortcut` |
+| Jump to page | `Alt+Shift+P` | `zen-page-skip.jump-to-page-shortcut` |
 
-Change these in **Settings → Sine Mods → Zen Page Skip**, or in `about:config`.
+Change these in **Settings → Sine Mods → Zen Page Skip**, or in `about:config`. The jump-to-page command prompts for a positive page number and works with the built-in numbered URL patterns.
 
 Shortcut preferences accept modifier combinations such as:
 
