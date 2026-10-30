@@ -95,3 +95,10 @@ test("normalizes repeated whitespace and rejects substring-only labels",()=>{
   const result=vm.runInContext("({label:normalizedText({getAttribute:()=>null,textContent:'  Next   page  '}),partial:matchesWords('next generation',NEXT_TEXT)})",context);
   assert.deepEqual(JSON.parse(JSON.stringify(result)),{label:"next page",partial:false});
 });
+
+test("matches exact and wildcard disabled-site rules safely",()=>{
+  const {context}=load();
+  context.Services.prefs.getStringPref=()=> "example.com, *.blocked.test, invalid/path";
+  const result=vm.runInContext("({exact:isSiteDisabled('https://example.com/page/1'),subdomain:isSiteDisabled('https://shop.blocked.test'),apex:isSiteDisabled('https://blocked.test'),other:isSiteDisabled('https://other.test')})",context);
+  assert.deepEqual(JSON.parse(JSON.stringify(result)),{exact:true,subdomain:true,apex:false,other:false});
+});

@@ -48,6 +48,33 @@ function getShortcuts() {
   };
 }
 
+function getDisabledSites() {
+  try {
+    return Services.prefs.getStringPref(PREF_BRANCH + "disabled-sites", "")
+      .split(/[\\n,]/)
+      .map((site) => site.trim().toLowerCase())
+      .filter(Boolean);
+  } catch (error) {
+    return [];
+  }
+}
+
+function isSiteDisabled(url) {
+  let hostname;
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+  } catch (error) {
+    return false;
+  }
+
+  return getDisabledSites().some((rule) => {
+    const wildcard = rule.startsWith("*.");
+    const host = (wildcard ? rule.slice(2) : rule).replace(/\\.$/, "");
+    if (!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(host)) return false;
+    return wildcard ? hostname !== host && hostname.endsWith("." + host) : hostname === host;
+  });
+}
+
 function getActiveTab() {
   return window.gBrowser?.selectedTab ?? null;
 }
@@ -203,6 +230,11 @@ function jump(direction) {
 
   if (!tab || !url) {
     showToast("No active page");
+    return;
+  }
+
+  if (isSiteDisabled(url)) {
+    showToast("Zen Page Skip disabled on this site");
     return;
   }
 

@@ -67,6 +67,14 @@ node --check script.js
 node --test
 ```
 
+## Site exclusions
+
+Set `zen-page-skip.disabled-sites` in **Settings → Sine Mods → Zen Page Skip** or `about:config` to a comma- or newline-separated list of hostnames.
+
+- `example.com` disables only that exact hostname.
+- `*.example.com` disables its subdomains, but not the apex `example.com`.
+- Invalid entries are ignored.
+
 ## Notes
 
 - Shortcut auto-repeat and IME composition events are ignored.

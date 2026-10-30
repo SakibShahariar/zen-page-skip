@@ -13,6 +13,13 @@
       "description": "Key combination used to go to the previous page. Examples: Alt+[, Ctrl+Alt+Left, Alt+P.",
       "type": "string",
       "defaultValue": "Alt+["
+    },
+    {
+      "name": "zen-page-skip.disabled-sites",
+      "title": "Disabled sites",
+      "description": "Comma- or newline-separated hostnames. Use *.example.com to disable subdomains without disabling example.com itself.",
+      "type": "string",
+      "defaultValue": ""
     }
   ]
 }
