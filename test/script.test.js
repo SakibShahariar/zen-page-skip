@@ -307,3 +307,9 @@ test("preview descriptions omit query strings and fragments",()=>{
   const {context}=load();
   assert.equal(vm.runInContext("describeNavigationTarget('https://example.test/page/2?token=secret#part')",context),"page: https://example.test/page/2");
 });
+
+test("keeps malformed relative-control previews from throwing",()=>{
+  const {context}=load();
+  assert.equal(vm.runInContext("describeControlTarget('http://[','https://example.test/page/1','Next')",context),"Next");
+  assert.equal(vm.runInContext("describeControlTarget('/page/2','https://example.test/page/1','Next')",context),"Next: https://example.test/page/2");
+});

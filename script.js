@@ -188,6 +188,15 @@ function describeNavigationTarget(url, label = "page") {
   }
 }
 
+function describeControlTarget(href, currentUrl, label) {
+  try {
+    return describeNavigationTarget(new URL(href, currentUrl).href, label);
+  } catch (error) {
+    debugLog("invalid-control-target", { label });
+    return label;
+  }
+}
+
 function confirmNavigation(description) {
   if (!isPreviewEnabled()) return true;
   try {
@@ -497,7 +506,7 @@ function jump(direction) {
   if (control) {
     const label = normalizedText(control) || "pagination control";
     const href = control.getAttribute("href");
-    const targetDescription = href ? describeNavigationTarget(new URL(href, url).href, label) : label;
+    const targetDescription = href ? describeControlTarget(href, url, label) : label;
     if (!confirmNavigation(targetDescription)) {
       showToast("Navigation cancelled");
       return;
