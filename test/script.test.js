@@ -386,3 +386,43 @@ test("detects infinite-scroll indicators and honors site overrides",()=>{
   const result=vm.runInContext("({detected:isInfiniteScrollPage(feed),skip:shouldSkipInfiniteScroll(feed,null),allowed:shouldSkipInfiniteScroll(feed,{infiniteScroll:'allow'}),blocked:shouldSkipInfiniteScroll(feed,{infiniteScroll:'block'}),custom:shouldSkipInfiniteScroll(feed,{nextSelector:'a.next'}),explicit:shouldSkipInfiniteScroll(paginated,null)})",Object.assign(context,{feed,paginated}));
   assert.deepEqual(JSON.parse(JSON.stringify(result)),{detected:true,skip:true,allowed:false,blocked:true,custom:false,explicit:false});
 });
+
+test("exports a versioned settings snapshot",()=>{
+  const {context}=load();
+  context.Services.prefs.getBoolPref=(_name,fallback)=>fallback;
+  context.Services.prefs.getIntPref=(_name,fallback)=>fallback;
+  context.Services.prefs.getStringPref=(_name,fallback)=>fallback;
+  const snapshot=JSON.parse(vm.runInContext("exportSettings()",context));
+  assert.equal(snapshot.schemaVersion,1);
+  assert.equal(snapshot.settings["next-shortcut"],"Alt+]");
+  assert.equal(snapshot.settings["toast-enabled"],true);
+});
+
+test("imports valid settings selectively and clamps numeric values",()=>{
+  const {context}=load();
+  const written={};
+  context.Services.prefs.setStringPref=(name,value)=>{written[name]=value};
+  context.Services.prefs.setBoolPref=(name,value)=>{written[name]=value};
+  context.Services.prefs.setIntPref=(name,value)=>{written[name]=value};
+  const payload=JSON.stringify({schemaVersion:1,settings:{
+    "next-shortcut":"Ctrl+Alt+Right",
+    "toast-enabled":false,
+    "toast-duration-ms":20000,
+    "unknown-setting":"ignored"
+  }});
+  const result=vm.runInContext("importSettings(payload)",Object.assign(context,{payload}));
+  assert.equal(result.success,true);
+  assert.equal(written["zen-page-skip.next-shortcut"],"Ctrl+Alt+Right");
+  assert.equal(written["zen-page-skip.toast-enabled"],false);
+  assert.equal(written["zen-page-skip.toast-duration-ms"],10000);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.ignored)),["unknown-setting"]);
+});
+
+test("rejects malformed imports and invalid shortcut values",()=>{
+  const {context}=load();
+  assert.equal(vm.runInContext("importSettings('{bad json').success",context),false);
+  const payload=JSON.stringify({schemaVersion:1,settings:{"next-shortcut":"Ctrl+Unknown+X"}});
+  const result=vm.runInContext("importSettings(payload)",Object.assign(context,{payload}));
+  assert.equal(result.success,false);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.rejected)),["next-shortcut"]);
+});

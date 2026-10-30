@@ -80,6 +80,22 @@ node --check script.js
 node --test
 ```
 
+## Settings backup and restore
+
+Export all supported settings from the browser console:
+
+```js
+copy(window.zenPageSkipExportSettings())
+```
+
+Import a previously exported JSON snapshot:
+
+```js
+window.zenPageSkipImportSettings(prompt("Paste Zen Page Skip settings JSON"))
+```
+
+Imports are versioned, validate known setting types, clamp numeric values, reject malformed shortcuts and site-rule JSON, and ignore unknown keys. Only settings present in the import are changed.
+
 ## Local diagnostics
 
 Enable `zen-page-skip.debug-mode` to record candidate scores, rejection reasons, and navigation decisions in the browser console. Logs remain in memory and in the local console; no telemetry or network requests are made.

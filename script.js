@@ -139,6 +139,113 @@ function getToastDuration() {
   }
 }
 
+const SETTINGS_SCHEMA = {
+  "next-shortcut": { type: "string", defaultValue: "Alt+]" },
+  "previous-shortcut": { type: "string", defaultValue: "Alt+[" },
+  "jump-to-page-shortcut": { type: "string", defaultValue: "Alt+Shift+P" },
+  "disabled-sites": { type: "string", defaultValue: "" },
+  "cooldown-ms": { type: "string", defaultValue: "400" },
+  "toast-enabled": { type: "boolean", defaultValue: true },
+  "toast-duration-ms": { type: "integer", defaultValue: 1800 },
+  "confidence-threshold": { type: "integer", defaultValue: 70 },
+  "excluded-selectors": { type: "string", defaultValue: "" },
+  "debug-mode": { type: "boolean", defaultValue: false },
+  "preview-before-navigation": { type: "boolean", defaultValue: false },
+  "next-words": { type: "string", defaultValue: "" },
+  "previous-words": { type: "string", defaultValue: "" },
+  "site-rules": { type: "string", defaultValue: "" }
+};
+
+function readSetting(name, schema) {
+  const key = PREF_BRANCH + name;
+  if (schema.type === "boolean") return Services.prefs.getBoolPref(key, schema.defaultValue);
+  if (schema.type === "integer") return Services.prefs.getIntPref(key, schema.defaultValue);
+  return Services.prefs.getStringPref(key, schema.defaultValue);
+}
+
+function exportSettings() {
+  const settings = {};
+  for (const [name, schema] of Object.entries(SETTINGS_SCHEMA)) {
+    try {
+      settings[name] = readSetting(name, schema);
+    } catch (error) {
+      settings[name] = schema.defaultValue;
+    }
+  }
+  return JSON.stringify({ schemaVersion: 1, settings }, null, 2);
+}
+
+function validateImportedSetting(name, value, schema) {
+  if (schema.type === "boolean") return typeof value === "boolean" ? { valid: true, value } : { valid: false };
+  if (schema.type === "integer") {
+    if (!Number.isInteger(value)) return { valid: false };
+    if (name === "cooldown-ms") return { valid: true, value: Math.min(Math.max(value, 0), 5000) };
+    if (name === "toast-duration-ms") return { valid: true, value: Math.min(Math.max(value, 500), 10000) };
+    if (name === "confidence-threshold") return { valid: true, value: Math.min(Math.max(value, 50), 150) };
+    return { valid: false };
+  }
+  if (typeof value !== "string" || value.length > 8192) return { valid: false };
+  if (name.endsWith("-shortcut") && !parseShortcut(value)) return { valid: false };
+  if (name === "site-rules" && value) {
+    try {
+      const parsed = JSON.parse(value);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { valid: false };
+    } catch (error) {
+      return { valid: false };
+    }
+  }
+  return { valid: true, value };
+}
+
+function importSettings(input) {
+  if (typeof input !== "string" || input.length > 65536) {
+    return { success: false, imported: [], rejected: ["input"], ignored: [] };
+  }
+  let payload;
+  try {
+    payload = JSON.parse(input);
+  } catch (error) {
+    return { success: false, imported: [], rejected: ["invalid JSON"], ignored: [] };
+  }
+  if (!payload || payload.schemaVersion !== 1 || !payload.settings ||
+      typeof payload.settings !== "object" || Array.isArray(payload.settings)) {
+    return { success: false, imported: [], rejected: ["unsupported schema"], ignored: [] };
+  }
+
+  const imported = [];
+  const rejected = [];
+  const ignored = [];
+  for (const [name, value] of Object.entries(payload.settings)) {
+    const schema = SETTINGS_SCHEMA[name];
+    if (!schema) {
+      ignored.push(name);
+      continue;
+    }
+    const validated = validateImportedSetting(name, value, schema);
+    if (!validated.valid) {
+      rejected.push(name);
+      continue;
+    }
+    try {
+      const key = PREF_BRANCH + name;
+      if (schema.type === "boolean") Services.prefs.setBoolPref(key, validated.value);
+      else if (schema.type === "integer") Services.prefs.setIntPref(key, validated.value);
+      else Services.prefs.setStringPref(key, validated.value);
+      imported.push(name);
+    } catch (error) {
+      rejected.push(name);
+    }
+  }
+  return { success: rejected.length === 0, imported, rejected, ignored };
+}
+
+window.zenPageSkipExportSettings = exportSettings;
+window.zenPageSkipImportSettings = importSettings;
+window.addEventListener("unload", () => {
+  if (window.zenPageSkipExportSettings === exportSettings) delete window.zenPageSkipExportSettings;
+  if (window.zenPageSkipImportSettings === importSettings) delete window.zenPageSkipImportSettings;
+}, { once: true });
+
 function getDebugEnabled() {
   try {
     return Services.prefs.getBoolPref(PREF_BRANCH + "debug-mode", false);
