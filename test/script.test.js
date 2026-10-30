@@ -426,3 +426,25 @@ test("rejects malformed imports and invalid shortcut values",()=>{
   assert.equal(result.success,false);
   assert.deepEqual(JSON.parse(JSON.stringify(result.rejected)),["next-shortcut"]);
 });
+
+test("supports per-site URL templates for next, previous, and direct page jumps",()=>{
+  const {context}=load();
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?JSON.stringify({
+    "example.test":{pageTemplate:"/archive/page/{page}"}
+  }):fallback;
+  assert.equal(vm.runInContext("getCustomNumberedPageUrl('https://example.test/archive/page/3',1)",context),"https://example.test/archive/page/4");
+  assert.equal(vm.runInContext("getCustomNumberedPageUrl('https://example.test/archive/page/3',-1)",context),"https://example.test/archive/page/2");
+  assert.equal(vm.runInContext("getSpecificPageUrl('https://example.test/archive/page/3',8)",context),"https://example.test/archive/page/8");
+});
+
+test("rejects unsafe or malformed custom URL templates",()=>{
+  const {context}=load();
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?JSON.stringify({
+    "example.test":{pageTemplate:"https://evil.test/page/{page}"}
+  }):fallback;
+  assert.equal(vm.runInContext("getCustomPageUrl('https://example.test/page/2',3)",context),null);
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?JSON.stringify({
+    "example.test":{pageTemplate:"/page/{page}/{page}"}
+  }):fallback;
+  assert.equal(vm.runInContext("getCustomPageUrl('https://example.test/page/2/3',4)",context),null);
+});

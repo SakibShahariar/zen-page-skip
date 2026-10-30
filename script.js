@@ -26,7 +26,50 @@ function getNumberedPageUrl(url, direction) {
     const candidate = pattern.build(url, nextPage);
     return candidate !== url ? candidate : null;
   }
-  return null;
+  return getCustomNumberedPageUrl(url, direction);
+}
+
+function escapeRegExp(value) {
+  const special = new Set(["\\", ".", "+", "*", "?", "^", "$", "{", "}", "(", ")", "|", "[", "]"]);
+  return Array.from(value).map((character) => special.has(character) ? "\\" + character : character).join("");
+}
+
+function getCustomPageTemplate(url) {
+  const template = getSiteRule(url)?.pageTemplate;
+  if (!template || template.split("{page}").length !== 2) return null;
+  try {
+    const current = new URL(url);
+    const marker = "ZENPAGESKIPMARKER";
+    const templateUrl = new URL(template.replace("{page}", marker), current.href);
+    if (templateUrl.origin !== current.origin) return null;
+    const parts = templateUrl.href.split(marker);
+    if (parts.length !== 2) return null;
+    const expression = new RegExp("^" + escapeRegExp(parts[0]) + "(\\d+)" + escapeRegExp(parts[1]) + "$");
+    const match = current.href.match(expression);
+    if (!match) return null;
+    return { template, page: Number(match[1]), current };
+  } catch (error) {
+    debugLog("custom-page-template-invalid", {});
+    return null;
+  }
+}
+
+function getCustomPageUrl(url, page) {
+  if (!Number.isSafeInteger(page) || page < 1 || page > 1000000) return null;
+  const info = getCustomPageTemplate(url);
+  if (!info) return null;
+  try {
+    const target = new URL(info.template.replace("{page}", String(page)), info.current.href);
+    return target.origin === info.current.origin ? target.href : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function getCustomNumberedPageUrl(url, direction) {
+  const info = getCustomPageTemplate(url);
+  if (!info) return null;
+  return getCustomPageUrl(url, info.page + direction);
 }
 
 function getSpecificPageUrl(url, page) {
@@ -34,7 +77,7 @@ function getSpecificPageUrl(url, page) {
   for (const pattern of PAGE_PATTERNS) {
     if (url.match(pattern.regex)) return pattern.build(url, page);
   }
-  return null;
+  return getCustomPageUrl(url, page);
 }
 
 let lastShortcutAt = 0;
@@ -480,7 +523,8 @@ function getSiteRule(url) {
       nextWords: cleanWords(rule.nextWords),
       previousWords: cleanWords(rule.previousWords),
       confidenceThreshold: Number.isInteger(rule.confidenceThreshold) ? Math.min(Math.max(rule.confidenceThreshold, 50), 150) : null,
-      infiniteScroll: rule.infiniteScroll === "allow" || rule.infiniteScroll === "block" ? rule.infiniteScroll : null
+      infiniteScroll: rule.infiniteScroll === "allow" || rule.infiniteScroll === "block" ? rule.infiniteScroll : null,
+      pageTemplate: typeof rule.pageTemplate === "string" && rule.pageTemplate.length <= 512 ? rule.pageTemplate : ""
     };
   } catch (error) {
     debugLog("site-rules-invalid", {});

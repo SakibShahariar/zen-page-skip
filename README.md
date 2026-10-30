@@ -124,6 +124,7 @@ Set `zen-page-skip.site-rules` to a JSON object keyed by a hostname or wildcard 
     "nextWords": ["Load more"],
     "previousWords": ["Newer results"],
     "confidenceThreshold": 85,
+    "pageTemplate": "/archive/page/{page}",
     "infiniteScroll": "allow"
   },
   "*.forum.example": {
@@ -132,7 +133,7 @@ Set `zen-page-skip.site-rules` to a JSON object keyed by a hostname or wildcard 
 }
 ```
 
-Site selectors take priority over generic detection but still pass the safety and exclusion checks. Invalid JSON or selectors are ignored. Per-site thresholds are clamped to 50–150.
+Site selectors take priority over generic detection but still pass the safety and exclusion checks. Invalid JSON or selectors are ignored. Per-site thresholds are clamped to 50–150. A `pageTemplate` must contain exactly one `{page}` placeholder and resolve to the same origin as the current page.
 
 ## Language support
 
