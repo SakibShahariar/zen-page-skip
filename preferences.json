@@ -27,6 +27,21 @@
       "description": "Minimum time between shortcut actions. Values from 0 to 5000 are accepted; default is 400.",
       "type": "string",
       "defaultValue": "400"
+    },
+    {
+      "name": "zen-page-skip.toast-enabled",
+      "title": "Show feedback toasts",
+      "description": "Show or hide pagination feedback messages.",
+      "type": "checkbox",
+      "defaultValue": true
+    },
+    {
+      "name": "zen-page-skip.toast-duration-ms",
+      "title": "Toast duration (milliseconds)",
+      "description": "How long feedback toasts remain visible. Values are clamped to 500–10000 milliseconds.",
+      "type": "string",
+      "value": "num",
+      "defaultValue": 1800
     }
   ]
 }

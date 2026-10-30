@@ -132,3 +132,32 @@ test("clamps invalid cooldown preferences to safe bounds",()=>{
   context.Services.prefs.getStringPref=()=> "not-a-number";
   assert.equal(vm.runInContext("getCooldownMs()",context),400);
 });
+
+test("honors toast enable and duration preferences",()=>{
+  let appended=0, timeoutMs=0;
+  const box={
+    PRIORITY_INFO_MEDIUM:1,
+    getNotificationWithValue:()=>null,
+    appendNotification:(_id,options)=>{appended++;assert.equal(options.label,"hello");return {close(){}}}
+  };
+  const {context}=load({gBrowser:{getNotificationBox:()=>box}});
+  context.Services.prefs.getBoolPref=()=>true;
+  context.Services.prefs.getIntPref=()=>3200;
+  context.window.setTimeout=(_callback,ms)=>{timeoutMs=ms};
+  vm.runInContext("showToast('hello')",context);
+  assert.equal(appended,1);
+  assert.equal(timeoutMs,3200);
+  context.Services.prefs.getBoolPref=()=>false;
+  vm.runInContext("showToast('hidden')",context);
+  assert.equal(appended,1);
+});
+
+test("clamps toast duration and falls back when the preference is unavailable",()=>{
+  const {context}=load();
+  context.Services.prefs.getIntPref=()=>20000;
+  assert.equal(vm.runInContext("getToastDuration()",context),10000);
+  context.Services.prefs.getIntPref=()=>100;
+  assert.equal(vm.runInContext("getToastDuration()",context),500);
+  context.Services.prefs.getIntPref=()=>{throw Error("missing")};
+  assert.equal(vm.runInContext("getToastDuration()",context),1800);
+});

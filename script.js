@@ -74,6 +74,23 @@ function isCooldownActive() {
   return false;
 }
 
+function getToastEnabled() {
+  try {
+    return Services.prefs.getBoolPref(PREF_BRANCH + "toast-enabled", true);
+  } catch (error) {
+    return true;
+  }
+}
+
+function getToastDuration() {
+  try {
+    const value = Services.prefs.getIntPref(PREF_BRANCH + "toast-duration-ms", TOAST_DURATION_MS);
+    return Math.min(Math.max(value, 500), 10000);
+  } catch (error) {
+    return TOAST_DURATION_MS;
+  }
+}
+
 function isSiteDisabled(url) {
   let hostname;
   try {
@@ -202,28 +219,18 @@ function findPaginationControl(direction) {
 }
 
 function showToast(message) {
-  try {
-    const zenUI = window.gZenUIManager;
-    if (typeof zenUI?.showToast === "function") {
-      zenUI.showToast({ label: message });
-      return;
-    }
-    if (typeof zenUI?.toast === "function") {
-      zenUI.toast(message);
-      return;
-    }
-  } catch (error) {
-    console.warn("[Zen Page Skip] Zen toast unavailable:", error);
-  }
+  if (!getToastEnabled()) return;
 
   try {
+    // Zen's current showToast API requires a Fluent message ID, not a raw label.
+    // Use the browser notification box for this mod's dynamic messages.
     const notificationBox = window.gBrowser.getNotificationBox();
     notificationBox.getNotificationWithValue(TOAST_ID)?.close();
     const notification = notificationBox.appendNotification(TOAST_ID, {
       label: message,
       priority: notificationBox.PRIORITY_INFO_MEDIUM
     });
-    window.setTimeout(() => notification?.close(), TOAST_DURATION_MS);
+    window.setTimeout(() => notification?.close(), getToastDuration());
   } catch (error) {
     console.warn("[Zen Page Skip] Notification unavailable:", error);
   }
