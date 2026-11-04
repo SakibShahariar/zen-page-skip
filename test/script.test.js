@@ -1037,5 +1037,5 @@ test("requires import confirmation and leaves preferences unchanged when cancell
   assert.equal(writes,0);
   assert.equal(promptText.includes("next-shortcut"),true);
   assert.equal(promptText.includes("Ctrl+Alt+Right"),false);
-  assert.equal(promptText.includes("\\n"),true);
+  assert.equal(promptText.includes("\n"),true);
 });
