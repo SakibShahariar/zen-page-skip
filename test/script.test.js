@@ -611,6 +611,21 @@ test("passes enabled and duration preferences to Zen native toasts",async()=>{
   assert.equal(label.textContent,"native message");
 });
 
+test("keeps host toast manager getter failures from escaping",()=>{
+  const {context}=load();
+  const messages=[];
+  context.Services.prefs.getBoolPref=()=>true;
+  context.Services.prefs.getIntPref=()=>1800;
+  context.window.gBrowser={getNotificationBox:()=>({
+    PRIORITY_INFO_MEDIUM:1,
+    getNotificationWithValue:()=>null,
+    appendNotification:(id,options)=>{messages.push(options.label);return {close(){}}}
+  })};
+  Object.defineProperty(context.window,"gZenUIManager",{get(){throw Error("host API unavailable")}});
+  assert.doesNotThrow(()=>vm.runInContext("showToast('safe fallback')",context));
+  assert.deepEqual(messages,["safe fallback"]);
+});
+
 test("falls back to the notification bar when the native toast API fails",()=>{
   let appended=0, timeoutMs=0;
   const box={PRIORITY_INFO_MEDIUM:1,getNotificationWithValue:()=>null,appendNotification:()=>{appended++;return {close(){}}}};

@@ -1057,10 +1057,15 @@ function showNativeToast(message, duration) {
 }
 
 function showToast(message) {
-  if (!getToastEnabled()) return;
-  const duration = getToastDuration();
-  if (showNativeToast(message, duration)) return;
-  showNotificationToast(message, duration);
+  try {
+    if (!getToastEnabled()) return;
+    const duration = getToastDuration();
+    if (showNativeToast(message, duration)) return;
+    showNotificationToast(message, duration);
+  } catch (error) {
+    // A broken host toast API must never escape into pagination error handling.
+    showNotificationToast(message, TOAST_DURATION_MS);
+  }
 }
 
 function normalizeNavigationUrl(value, baseUrl) {
