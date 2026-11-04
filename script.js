@@ -458,7 +458,7 @@ function importSettings(input) {
     "Changed site rules: " + (preview.siteRules?.changed.join(", ") || "none"),
     "Removed site rules: " + (preview.siteRules?.removed.join(", ") || "none"),
     "Ignored unknown settings: " + (preview.ignored.join(", ") || "none")
-  ].join("\\n");
+  ].join("\n");
   let confirmed = false;
   try {
     confirmed = Services.prompt.confirm(window, "Zen Page Skip", summary);
