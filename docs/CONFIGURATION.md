@@ -12,8 +12,9 @@ Default bindings:
 | Previous page | `Alt + [` |
 | Jump to page | `Alt + Shift + P` |
 | Toggle current site | `Alt + Shift + D` |
+| Toggle current tab pause | `Alt + Shift + X` |
 
-Shortcuts accept modifier combinations such as `Ctrl+Alt+Right`, `Cmd+Shift+N`, `Super+N`, and `Option+P`. Modifier names are case-insensitive. Set an individual shortcut to an empty value to disable that action's keyboard binding. The toggle shortcut pauses or re-enables pagination for the current hostname while preserving its other site-rule settings; it creates an exact-host override when a wildcard rule applies.
+Shortcuts accept modifier combinations such as `Ctrl+Alt+Right`, `Cmd+Shift+N`, `Super+N`, and `Option+P`. Modifier names are case-insensitive. Set an individual shortcut to an empty value to disable that action's keyboard binding. The toggle shortcut pauses or re-enables pagination for the current hostname while preserving its other site-rule settings; it creates an exact-host override when a wildcard rule applies. The separate current-tab shortcut pauses only the selected tab until resumed or that tab is closed; it does not modify saved site rules.
 
 Supported modifiers:
 

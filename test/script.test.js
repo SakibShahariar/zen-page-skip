@@ -204,10 +204,10 @@ test("caches shortcut preferences and invalidates them on preference changes",()
   vm.runInContext("observeShortcutPreferences()",context);
   vm.runInContext("getShortcuts()",context);
   vm.runInContext("getShortcuts()",context);
-  assert.equal(reads,4);
+  assert.equal(reads,5);
   observer.observe(null,"nsPref:changed","zen-page-skip.next-shortcut");
   vm.runInContext("getShortcuts()",context);
-  assert.equal(reads,8);
+  assert.equal(reads,10);
 });
 
 test("keeps diagnostics disabled by default and exposes opt-in local logs",()=>{
@@ -1083,4 +1083,44 @@ test("does not alter malformed site rules or globally disabled hosts",()=>{
   context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("disabled-sites")?"private.example":fallback;
   assert.equal(vm.runInContext("toggleCurrentSite()",context),false);
   assert.equal(writes,0);
+});
+
+
+test("pauses and resumes only the selected tab",()=>{
+  const {context}=load();
+  context.Services.prefs.getBoolPref=()=>false;
+  const firstTab={},secondTab={};
+  context.window.gBrowser={selectedTab:firstTab};
+  assert.equal(vm.runInContext("toggleCurrentTabPause()",context),true);
+  assert.equal(vm.runInContext("isCurrentTabPaused()",context),true);
+  context.window.gBrowser.selectedTab=secondTab;
+  assert.equal(vm.runInContext("isCurrentTabPaused()",context),false);
+  assert.equal(vm.runInContext("toggleCurrentTabPause()",context),true);
+  assert.equal(vm.runInContext("isCurrentTabPaused()",context),true);
+  context.window.gBrowser.selectedTab=firstTab;
+  assert.equal(vm.runInContext("isCurrentTabPaused()",context),true);
+  assert.equal(vm.runInContext("toggleCurrentTabPause()",context),false);
+  assert.equal(vm.runInContext("isCurrentTabPaused()",context),false);
+});
+
+test("does not run pagination while the current tab is paused",()=>{
+  const {context}=load();
+  context.Services.prefs.getBoolPref=()=>false;
+  const tab={};
+  context.window.gBrowser={selectedTab:tab};
+  let calls=0;
+  context.jumpInternal=()=>{calls++};
+  vm.runInContext("toggleCurrentTabPause(); jump(1);",context);
+  assert.equal(calls,0);
+});
+
+test("binds the per-tab pause toggle to its configurable shortcut",()=>{
+  const {context,listeners}=load();
+  context.Services.prefs.getBoolPref=()=>false;
+  const tab={};
+  context.window.gBrowser={selectedTab:tab};
+  let prevented=0;
+  listeners.keydown({key:"x",altKey:true,shiftKey:true,ctrlKey:false,metaKey:false,target:{},repeat:false,isComposing:false,preventDefault(){prevented++},stopPropagation(){}});
+  assert.equal(vm.runInContext("isCurrentTabPaused()",context),true);
+  assert.equal(prevented,1);
 });

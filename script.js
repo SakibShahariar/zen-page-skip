@@ -5,6 +5,7 @@ const DEFAULT_NEXT_SHORTCUT = "Alt+]";
 const DEFAULT_PREVIOUS_SHORTCUT = "Alt+[";
 const DEFAULT_JUMP_SHORTCUT = "Alt+Shift+P";
 const DEFAULT_TOGGLE_SITE_SHORTCUT = "Alt+Shift+D";
+const DEFAULT_TOGGLE_TAB_SHORTCUT = "Alt+Shift+X";
 
 const NEXT_TEXT = ["next", "next page", "go to next page", "older", "older posts", "siguiente", "siguiente página", "suivant", "prochain", "weiter", "nächste", "próximo", "próxima", "下一页", "下页", "次へ", "次のページ", "다음", "다음 페이지", "التالي", "الصفحة التالية", "следующая", "следующий", "следующая страница", "następna", "następna strona", "volgende", "pagina successiva", "prossimo"];
 const PREVIOUS_TEXT = ["previous", "prev", "previous page", "go to previous page", "newer", "newer posts", "anterior", "página anterior", "précédent", "précédente", "zurück", "vorherige", "上一页", "前一页", "前へ", "前のページ", "이전", "이전 페이지", "السابق", "الصفحة السابقة", "предыдущая", "предыдущий", "предыдущая страница", "poprzednia", "poprzednia strona", "vorige", "pagina precedente", "precedente"];
@@ -162,7 +163,8 @@ function getShortcuts() {
     next: getShortcut("next-shortcut", DEFAULT_NEXT_SHORTCUT),
     previous: getShortcut("previous-shortcut", DEFAULT_PREVIOUS_SHORTCUT),
     jump: getShortcut("jump-to-page-shortcut", DEFAULT_JUMP_SHORTCUT),
-    toggleSite: getShortcut("toggle-site-shortcut", DEFAULT_TOGGLE_SITE_SHORTCUT)
+    toggleSite: getShortcut("toggle-site-shortcut", DEFAULT_TOGGLE_SITE_SHORTCUT),
+    toggleTab: getShortcut("toggle-tab-shortcut", DEFAULT_TOGGLE_TAB_SHORTCUT)
   };
   if (shortcutObserversRegistered) cachedShortcuts = shortcuts;
   return shortcuts;
@@ -170,7 +172,7 @@ function getShortcuts() {
 
 function observeShortcutPreferences() {
   if (typeof Services.prefs.addObserver !== "function") return;
-  const names = ["next-shortcut", "previous-shortcut", "jump-to-page-shortcut", "toggle-site-shortcut"].map((name) => PREF_BRANCH + name);
+  const names = ["next-shortcut", "previous-shortcut", "jump-to-page-shortcut", "toggle-site-shortcut", "toggle-tab-shortcut"].map((name) => PREF_BRANCH + name);
   const observer = {
     observe(_subject, topic, data) {
       if (topic === "nsPref:changed" && names.includes(data)) {
@@ -246,6 +248,7 @@ const SETTINGS_SCHEMA = {
   "previous-shortcut": { type: "string", defaultValue: "Alt+[" },
   "jump-to-page-shortcut": { type: "string", defaultValue: "Alt+Shift+P" },
   "toggle-site-shortcut": { type: "string", defaultValue: "Alt+Shift+D" },
+  "toggle-tab-shortcut": { type: "string", defaultValue: "Alt+Shift+X" },
   "disabled-sites": { type: "string", defaultValue: "" },
   "cooldown-ms": { type: "string", defaultValue: "400" },
   "toast-enabled": { type: "boolean", defaultValue: true },
@@ -1229,6 +1232,10 @@ function navigate(tab, url) {
 }
 
 function jumpToPage() {
+  if (isCurrentTabPaused()) {
+    showToast("Pagination paused for this tab");
+    return false;
+  }
   try {
     jumpToPageInternal();
   } catch (error) {
@@ -1294,7 +1301,32 @@ function jumpToPageInternal() {
   if (!lastNavigationWasHash) showToast("Going to page " + page);
 }
 
+const pausedTabs = new WeakSet();
+
+function isCurrentTabPaused() {
+  const tab = getActiveTab();
+  return Boolean(tab && pausedTabs.has(tab));
+}
+
+function toggleCurrentTabPause() {
+  const tab = getActiveTab();
+  if (!tab) {
+    showToast("No active tab");
+    return false;
+  }
+  const paused = pausedTabs.has(tab);
+  if (paused) pausedTabs.delete(tab);
+  else pausedTabs.add(tab);
+  debugLog("tab-pause-changed", { reason: paused ? "resumed" : "paused" });
+  showToast(paused ? "Pagination resumed for this tab" : "Pagination paused for this tab");
+  return !paused;
+}
+
 function jump(direction) {
+  if (isCurrentTabPaused()) {
+    showToast("Pagination paused for this tab");
+    return false;
+  }
   try {
     jumpInternal(direction);
   } catch (error) {
@@ -1516,7 +1548,8 @@ function getShortcutWarnings() {
     ["next-page", shortcuts.next],
     ["previous-page", shortcuts.previous],
     ["jump-to-page", shortcuts.jump],
-    ["toggle-current-site", shortcuts.toggleSite]
+    ["toggle-current-site", shortcuts.toggleSite],
+    ["toggle-current-tab", shortcuts.toggleTab]
   ];
   const warnings = [];
   for (const entry of entries) {
@@ -1599,6 +1632,14 @@ function onKeyDown(event) {
     event.preventDefault();
     event.stopPropagation();
     toggleCurrentSite();
+    return;
+  }
+
+  if (matches(event, shortcuts.toggleTab)) {
+    if (isCooldownActive()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    toggleCurrentTabPause();
   }
 }
 
