@@ -894,6 +894,15 @@ function navigate(tab, url) {
 }
 
 function jumpToPage() {
+  try {
+    jumpToPageInternal();
+  } catch (error) {
+    debugLog("jump-to-page-failed-safely", { message: String(error) });
+    showToast("Jump failed safely; see local diagnostics");
+  }
+}
+
+function jumpToPageInternal() {
   const tab = getActiveTab();
   const url = getCurrentUrl();
   if (!tab || !url) {
@@ -951,6 +960,15 @@ function jumpToPage() {
 }
 
 function jump(direction) {
+  try {
+    jumpInternal(direction);
+  } catch (error) {
+    debugLog("navigation-failed-safely", { direction, message: String(error) });
+    showToast("Pagination failed safely; see local diagnostics");
+  }
+}
+
+function jumpInternal(direction) {
   debugLog("navigation-requested", { direction: direction === 1 ? "next" : "previous" });
   const tab = getActiveTab();
   const url = getCurrentUrl();
