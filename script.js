@@ -262,6 +262,75 @@ function exportSettings() {
   return JSON.stringify({ schemaVersion: 1, settings }, null, 2);
 }
 
+function validateImportedSiteRules(value) {
+  let rules;
+  try {
+    rules = JSON.parse(value);
+  } catch (error) {
+    return false;
+  }
+  if (!rules || typeof rules !== "object" || Array.isArray(rules)) return false;
+  const entries = Object.entries(rules);
+  if (entries.length > 100) return false;
+
+  const allowedKeys = new Set([
+    "nextSelector", "previousSelector", "nextWords", "previousWords",
+    "confidenceThreshold", "infiniteScroll", "pageTemplate", "enabled",
+    "action", "hashMode"
+  ]);
+  const validHost = /^(?:\\*\\.)?[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/i;
+
+  for (const [pattern, rule] of entries) {
+    if (!validHost.test(pattern) || pattern.includes("..") ||
+        !rule || typeof rule !== "object" || Array.isArray(rule)) return false;
+    for (const key of Object.keys(rule)) {
+      if (!allowedKeys.has(key)) return false;
+    }
+
+    for (const key of ["nextSelector", "previousSelector"]) {
+      if (rule[key] === undefined) continue;
+      if (typeof rule[key] !== "string" || rule[key].length > 512) return false;
+      if (!rule[key].trim()) continue;
+      try {
+        if (typeof document?.createElement !== "function") return false;
+        document.createElement("div").matches(rule[key]);
+      } catch (error) {
+        return false;
+      }
+    }
+
+    for (const key of ["nextWords", "previousWords"]) {
+      if (rule[key] === undefined) continue;
+      if (!Array.isArray(rule[key]) || rule[key].length > 50 ||
+          rule[key].some((word) => typeof word !== "string" || !word.trim() || word.length > 80)) return false;
+    }
+
+    if (rule.confidenceThreshold !== undefined &&
+        (!Number.isInteger(rule.confidenceThreshold) || rule.confidenceThreshold < 50 || rule.confidenceThreshold > 150)) return false;
+    if (rule.infiniteScroll !== undefined && !["allow", "block"].includes(rule.infiniteScroll)) return false;
+    if (rule.enabled !== undefined && typeof rule.enabled !== "boolean") return false;
+    if (rule.action !== undefined && !["auto", "click", "url"].includes(rule.action)) return false;
+    if (rule.hashMode !== undefined && !["verify", "allow", "disable"].includes(rule.hashMode)) return false;
+
+    if (rule.pageTemplate !== undefined) {
+      if (typeof rule.pageTemplate !== "string" || rule.pageTemplate.length > 512) return false;
+      if (rule.pageTemplate) {
+        if (rule.pageTemplate.split("{page}").length !== 2) return false;
+        const host = pattern.startsWith("*.") ? "zenpageskip." + pattern.slice(2) : pattern;
+        try {
+          const base = new URL("https://" + host + "/");
+          const target = new URL(rule.pageTemplate.replace("{page}", "2"), base.href);
+          if (!["http:", "https:"].includes(target.protocol) || target.origin !== base.origin ||
+              target.username || target.password) return false;
+        } catch (error) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
 function validateImportedSetting(name, value, schema) {
   if (schema.type === "boolean") return typeof value === "boolean" ? { valid: true, value } : { valid: false };
   if (schema.type === "integer") {
@@ -278,13 +347,8 @@ function validateImportedSetting(name, value, schema) {
     return { valid: true, value: String(Math.min(numeric, 5000)) };
   }
   if (name.endsWith("-shortcut") && !parseShortcut(value)) return { valid: false };
-  if (name === "site-rules" && value) {
-    try {
-      const parsed = JSON.parse(value);
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { valid: false };
-    } catch (error) {
-      return { valid: false };
-    }
+  if (name === "site-rules" && value && !validateImportedSiteRules(value)) {
+    return { valid: false };
   }
   return { valid: true, value };
 }
