@@ -754,3 +754,40 @@ test("rolls back earlier preference writes when a later import write fails",()=>
   assert.equal(stored["zen-page-skip.next-shortcut"],"Alt+]");
   assert.equal(stored["zen-page-skip.toast-enabled"],true);
 });
+
+
+test("validates imported site-rule selectors and same-origin page templates",()=>{
+  const {context}=load();
+  let writes=0;
+  context.document={createElement:()=>({matches:(selector)=>{if(selector==="[")throw Error("invalid selector");return false}})};
+  context.Services.prefs.prefHasUserValue=()=>false;
+  context.Services.prefs.clearUserPref=()=>{};
+  context.Services.prefs.setStringPref=()=>{writes++};
+  const validRules=JSON.stringify({"example.test":{
+    nextSelector:"a.next",
+    nextWords:["Next page"],
+    confidenceThreshold:90,
+    pageTemplate:"/archive/page/{page}",
+    action:"url",
+    hashMode:"verify"
+  }});
+  const validPayload=JSON.stringify({schemaVersion:1,settings:{"site-rules":validRules}});
+  const valid=vm.runInContext("importSettings(payload)",Object.assign(context,{payload:validPayload}));
+  assert.equal(valid.success,true);
+  assert.equal(writes,1);
+
+  const invalidRules=[
+    JSON.stringify({"example.test":{nextSelector:"["}}),
+    JSON.stringify({"example.test":{pageTemplate:"https://evil.test/page/{page}"}}),
+    JSON.stringify({"example.test":{action:"execute"}}),
+    JSON.stringify({"example.test":{nextWords:[""]}})
+  ];
+  for(const rules of invalidRules){
+    const payload=JSON.stringify({schemaVersion:1,settings:{"site-rules":rules}});
+    const result=vm.runInContext("importSettings(payload)",Object.assign(context,{payload}));
+    assert.equal(result.success,false);
+    assert.deepEqual(JSON.parse(JSON.stringify(result.imported)),[]);
+    assert.deepEqual(JSON.parse(JSON.stringify(result.rejected)),["site-rules"]);
+  }
+  assert.equal(writes,1);
+});
