@@ -1061,7 +1061,7 @@ function normalizeNavigationUrl(value, baseUrl) {
   try {
     const url = new URL(value, baseUrl);
     if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) return null;
-    url.hostname = url.hostname.toLowerCase();
+    url.hostname = url.hostname.toLowerCase().replace(/\.$/, "");
     if ((url.protocol === "http:" && url.port === "80") ||
         (url.protocol === "https:" && url.port === "443")) url.port = "";
     return url.href;
