@@ -601,7 +601,15 @@ function getPageDocument() {
 }
 
 function normalizedText(element) {
-  return (element?.getAttribute("aria-label") || element?.getAttribute("title") || element?.textContent || "")
+  let labelledText = "";
+  const labelledBy = element?.getAttribute("aria-labelledby");
+  if (labelledBy && element.ownerDocument?.getElementById) {
+    labelledText = labelledBy.split(/\s+/)
+      .map((id) => element.ownerDocument.getElementById(id)?.textContent || "")
+      .filter(Boolean)
+      .join(" ");
+  }
+  return (element?.getAttribute("aria-label") || element?.getAttribute("title") || labelledText || element?.textContent || "")
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();

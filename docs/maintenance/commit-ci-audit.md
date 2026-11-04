@@ -24,7 +24,7 @@ Persistent repository-specific record of commit-level CI checks and red-cross in
 
 - Repository: `SakibShahariar/zen-page-skip`
 - Default branch: `main`
-- Checkpoint SHA: `18c81616b19ae31b7bbdbe5dc27e72bf74fc31b8`
+- Checkpoint SHA: `166e5337e786bf16e07b4e005a2d5e125a4d5c38`
 - Initialized: 2026-11-02
 - Baseline: latest branch tip queried through combined commit-status endpoint; empty status list recorded as **unavailable**, not green/red. Older history was not retroactively audited during setup.
 - Updated: 2026-11-04
@@ -95,3 +95,6 @@ No red result was confirmed from the status data retrieved during setup.
 | `18c81616b19ae31b7bbdbe5dc27e72bf74fc31b8` | test: model excluded widget contexts precisely (#35, #40) | green | 2026-11-04 | [41828485352](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41828485352) |
 
 - `208b958c26884a069bfcaaea336eb1d295e2c831`: an existing DOM mock treated any selector containing the word `navigation` as a pagination container. The narrower production selector exposed that fixture assumption. Corrected the mock to distinguish excluded widget selectors from pagination landmarks in `18c81616b19ae31b7bbdbe5dc27e72bf74fc31b8`; rerun passed with all 66 tests.
+
+
+| `166e5337e786bf16e07b4e005a2d5e125a4d5c38` | docs: explain pagination candidate safeguards (#35, #40) | green | 2026-11-04 | [41828649571](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41828649571) |

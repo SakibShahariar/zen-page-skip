@@ -859,3 +859,22 @@ test("prefers pagination landmarks over generic navigation and carousel Next lin
   context.window.gBrowser={selectedTab:{linkedBrowser:browser}};
   assert.equal(vm.runInContext("findPaginationControl(1)",context),pagerNext);
 });
+
+
+test("uses accessible names from aria-label, title, and aria-labelledby",()=>{
+  const {context}=load();
+  const label={textContent:"Next page"};
+  const labelled={ownerDocument:{getElementById:(id)=>id==="next-label"?label:null},getAttribute:(name)=>name==="aria-labelledby"?"next-label":null,textContent:""};
+  const result=vm.runInContext("({aria:normalizedText({getAttribute:(name)=>name==='aria-label'?'Next page':null,textContent:''}),title:normalizedText({getAttribute:(name)=>name==='title'?'Next page':null,textContent:''}),referenced:normalizedText(labelled)})",Object.assign(context,{labelled}));
+  assert.deepEqual(JSON.parse(JSON.stringify(result)),{aria:"next page",title:"next page",referenced:"next page"});
+});
+
+test("selects icon-only pagination controls when accessible metadata identifies direction",()=>{
+  const {context}=load();
+  const aria=el({text:"",attrs:{href:"/page/2","aria-label":"Next page"},pagination:true});
+  const title=el({text:"",attrs:{href:"/page/3",title:"Next page"},pagination:true});
+  const rel=el({text:"",attrs:{href:"/page/4",rel:"next"},pagination:true});
+  const doc={querySelectorAll:()=>[aria,title,rel]};
+  context.window.gBrowser={selectedTab:{linkedBrowser:{currentURI:{spec:"https://example.test/page/1"},contentDocument:doc}}};
+  assert.equal(vm.runInContext("findPaginationControl(1)",context),rel);
+});
