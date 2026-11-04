@@ -114,6 +114,8 @@ Before using a numbered URL fallback, it checks same-origin numbered page links 
 
 Hash-only navigation is treated separately. The default `verify` mode checks whether visible page content changes after the fragment changes; a fragment update by itself is not treated as proof that pagination succeeded.
 
+Automatic detection ignores hidden or aria-hidden controls and controls inside carousels, sliders, recommendation widgets, and article/post navigation. A generic site-wide navigation bar is not treated as a pagination landmark by itself. Explicit per-site selectors can opt a known control back in, but disabled, destructive, dialog, menu, and user-excluded controls remain blocked.
+
 For each action, the mod reads the selected tab's current URL and document. This allows updated SPA routes and browser-history navigation without relying on stale cached candidates. The mod does not replace or intercept the site's own router or history APIs.
 
 ## Local diagnostics

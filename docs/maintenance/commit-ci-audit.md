@@ -24,12 +24,12 @@ Persistent repository-specific record of commit-level CI checks and red-cross in
 
 - Repository: `SakibShahariar/zen-page-skip`
 - Default branch: `main`
-- Checkpoint SHA: `78f4b4d593827db2d8f8caed340c961fde60ad1c`
+- Checkpoint SHA: `18c81616b19ae31b7bbdbe5dc27e72bf74fc31b8`
 - Initialized: 2026-11-02
 - Baseline: latest branch tip queried through combined commit-status endpoint; empty status list recorded as **unavailable**, not green/red. Older history was not retroactively audited during setup.
 - Updated: 2026-11-04
 - Reviewed range: `949eca141fe491238651f1896ebd006aaf065301` → `78f4b4d593827db2d8f8caed340c961fde60ad1c` (18 commits; 15 green, 3 red, all failures investigated and followed by green fixes).
-- Next session: review commits after this checkpoint; carry forward the three historical red entries and their fixes below.
+- Next session: review commits after this checkpoint; carry forward the four historical red entries and their fixes below.
 
 ## Initial baseline
 
@@ -89,3 +89,9 @@ No red result was confirmed from the status data retrieved during setup.
 
 - `d160a345f5dd657a9adef4033e7a506577346517`: the new relative-URL test expected resolution against the wrong directory. This was a test expectation error, not a production-code failure. Corrected in `a852663b0c46e60ba69de239bd1ae11dee11f707`; rerun passed.
 - `78b3952cc67867d081c78aabe823067d0bf46f55` and `379d11938b0aba00519ac08aa67e45f74991f692`: the existing import-success test mock did not provide preference getters needed by the new snapshot phase. Updated the test fixture in `c719608cefe388704bebf208afcf1ec8458e0d52`; rerun passed. No production regression was identified.
+
+
+| `208b958c26884a069bfcaaea336eb1d295e2c831` | fix: filter unrelated pagination controls (#35, #40) | red | 2026-11-04 | [41828391447](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41828391447) |
+| `18c81616b19ae31b7bbdbe5dc27e72bf74fc31b8` | test: model excluded widget contexts precisely (#35, #40) | green | 2026-11-04 | [41828485352](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41828485352) |
+
+- `208b958c26884a069bfcaaea336eb1d295e2c831`: an existing DOM mock treated any selector containing the word `navigation` as a pagination container. The narrower production selector exposed that fixture assumption. Corrected the mock to distinguish excluded widget selectors from pagination landmarks in `18c81616b19ae31b7bbdbe5dc27e72bf74fc31b8`; rerun passed with all 66 tests.
