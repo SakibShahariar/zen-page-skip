@@ -983,3 +983,15 @@ test("reports custom page-template validation failures without exposing destinat
   assert.equal(diagnostics.includes("evil.example"),false);
   assert.equal(diagnostics.includes("private.example"),false);
 });
+
+
+test("reports malformed page-template placeholder counts without exposing URLs",()=>{
+  const {context}=load();
+  context.Services.prefs.getBoolPref=()=>true;
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?JSON.stringify({"private.example":{pageTemplate:"/archive/{page}/{page}"}}):fallback;
+  assert.equal(vm.runInContext("getCustomPageTemplate('https://private.example/archive/page/2')",context),null);
+  const diagnostics=vm.runInContext("getDiagnostics()",context);
+  assert.equal(diagnostics.includes("custom-page-template-invalid"),true);
+  assert.equal(diagnostics.includes("placeholder-count"),true);
+  assert.equal(diagnostics.includes("private.example"),false);
+});

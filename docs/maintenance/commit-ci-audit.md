@@ -24,7 +24,7 @@ Persistent repository-specific record of commit-level CI checks and red-cross in
 
 - Repository: `SakibShahariar/zen-page-skip`
 - Default branch: `main`
-- Checkpoint SHA: `4736a05362d757a8b195da17f2852301b40db6ca`
+- Checkpoint SHA: `9b899fd9cbeeaf51201fdfbd78415b8fbaf3406f`
 - Initialized: 2026-11-02
 - Baseline: latest branch tip queried through combined commit-status endpoint; empty status list recorded as **unavailable**, not green/red. Older history was not retroactively audited during setup.
 - Updated: 2026-11-04
@@ -119,3 +119,6 @@ No red result was confirmed from the status data retrieved during setup.
 | `4736a05362d757a8b195da17f2852301b40db6ca` | test: match selector diagnostic fixture to current host (#46) | green | 2026-11-04 | [41830096612](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41830096612) |
 
 - `4427a9bd834ca0b5f7d0a39db1fa5b7002b56978`: the selector-diagnostic test configured a rule for `example.test` while its browser fixture was on `private.example`, so no rule was matched. Corrected the fixture host in `4736a05362d757a8b195da17f2852301b40db6ca`; rerun passed.
+
+
+| `9b899fd9cbeeaf51201fdfbd78415b8fbaf3406f` | fix: explain invalid site-rule page templates (#46) | green | 2026-11-04 | [41830365401](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41830365401) |
