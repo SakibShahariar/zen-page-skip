@@ -121,3 +121,8 @@ Classify every open issue into exactly one of these categories during triage. Re
 - Module filenames must use a two-digit numeric prefix so lexical sorting preserves execution order.
 - Keep regression tests loading the generated `script.js` and verify that it exactly matches the ordered module concatenation.
 - CI must run the build check before syntax and regression tests. Do not claim the refactor preserves live Zen/Sine behavior until a browser session validates it.
+
+
+## Acceptance Criteria Integrity
+
+Acceptance criteria must reflect reality: check a criterion only when its complete requirement is implemented and supported by concrete evidence. Leave incomplete, partial, untested, and unverified criteria unchecked. Before closing an issue, compare every checkbox with the current code, tests, CI, and required manual validation. Do not infer completion from a commit or closed issue. Reopen previously closed issues when required criteria remain unmet or unverified, and explain the remaining work.
