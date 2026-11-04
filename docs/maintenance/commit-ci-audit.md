@@ -152,3 +152,8 @@ No red result was confirmed from the status data retrieved during setup.
 
 | `a97551c3afc384d5d404c6f6d8d5ea59094d92f7` | feat: add privacy-safe troubleshooting reports (#36) | green | 2026-11-04 | [41832615755](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41832615755) |
 | `9ace0a893f19c179fbfd4772a46f514b6a825de2` | docs: fix troubleshooting report instructions (#36) | green | 2026-11-04 | [41832824311](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41832824311) |
+
+
+| `8ef4a0df9bd212664509602ef48a309cd5d3c520` | fix: canonicalize trailing-dot navigation hosts (#38) | green | 2026-11-04 | [41833003289](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41833003289) |
+| `1411f63838d880eb57b96a634acac37f0db364dd` | test: verify default preference rollback (#42) | green | 2026-11-04 | [41833080384](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41833080384) |
+| `7e0926b184a5c82f788bc1fc07571c28dda7861c` | docs: add Zen and Sine compatibility matrix (#30) | green | 2026-11-04 | [41833172282](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41833172282) |

@@ -1190,3 +1190,14 @@ test("declares the new site and tab pause shortcuts in the Sine preferences meta
   assert.equal(entries.get("zen-page-skip.toggle-site-shortcut").defaultValue,"Alt+Shift+D");
   assert.equal(entries.get("zen-page-skip.toggle-tab-shortcut").defaultValue,"Alt+Shift+X");
 });
+
+
+test("documents intended host compatibility separately from live verification",()=>{
+  const matrix=fs.readFileSync(path.join(__dirname,"../docs/COMPATIBILITY.md"),"utf8");
+  const readme=fs.readFileSync(path.join(__dirname,"../README.md"),"utf8");
+  assert.equal(matrix.includes("Zen Browser with Sine"),true);
+  assert.equal(matrix.includes("Automated regression coverage"),true);
+  assert.equal(matrix.includes("Live Zen/Sine verification"),true);
+  assert.equal(matrix.includes("No minimum supported Zen Browser or Sine version"),true);
+  assert.equal(readme.includes("docs/COMPATIBILITY.md"),true);
+});
