@@ -301,7 +301,12 @@ function validateImportedSiteRules(value) {
   const validHost = /^(?:\\*\\.)?[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/i;
 
   for (const [pattern, rule] of entries) {
-    if (!validHost.test(pattern) || pattern.includes("..") ||
+    const hostnamePattern = pattern.startsWith("*.") ? pattern.slice(2) : pattern;
+    const labels = hostnamePattern.split(".");
+    const validHostname = hostnamePattern.length <= 253 &&
+      labels.every((label) => label.length <= 63 &&
+        /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label));
+    if (!validHost.test(pattern) || !validHostname ||
         !rule || typeof rule !== "object" || Array.isArray(rule)) return false;
     for (const key of Object.keys(rule)) {
       if (!allowedKeys.has(key)) return false;
