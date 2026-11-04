@@ -131,8 +131,11 @@ const TOAST_DURATION_MS = 1800;
 
 function getShortcut(name, fallback) {
   try {
-    const value = Services.prefs.getStringPref(PREF_BRANCH + name, "");
-    return value.trim() || fallback;
+    const key = PREF_BRANCH + name;
+    const value = Services.prefs.getStringPref(key, "");
+    if (value.trim()) return value.trim();
+    if (name.endsWith("-shortcut") && Services.prefs.prefHasUserValue?.(key)) return "";
+    return fallback;
   } catch (error) {
     console.warn(`[Zen Page Skip] Could not read preference ${name}:`, error);
     return fallback;
@@ -346,7 +349,8 @@ function validateImportedSetting(name, value, schema) {
     if (!Number.isSafeInteger(numeric)) return { valid: false };
     return { valid: true, value: String(Math.min(numeric, 5000)) };
   }
-  if (name.endsWith("-shortcut") && !parseShortcut(value)) return { valid: false };
+  if (name.endsWith("-shortcut") && value.trim() && !parseShortcut(value)) return { valid: false };
+  if (name.endsWith("-shortcut") && !value.trim()) return { valid: true, value: "" };
   if (name === "site-rules" && value && !validateImportedSiteRules(value)) {
     return { valid: false };
   }
@@ -1312,7 +1316,7 @@ function getShortcutWarnings() {
   ];
   const warnings = [];
   for (const entry of entries) {
-    if (!parseShortcut(entry[1])) warnings.push("Invalid " + entry[0] + " shortcut: " + entry[1]);
+    if (entry[1] && !parseShortcut(entry[1])) warnings.push("Invalid " + entry[0] + " shortcut: " + entry[1]);
   }
   for (let i = 0; i < entries.length; i++) {
     for (let j = i + 1; j < entries.length; j++) {

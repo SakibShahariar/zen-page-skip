@@ -878,3 +878,38 @@ test("selects icon-only pagination controls when accessible metadata identifies 
   context.window.gBrowser={selectedTab:{linkedBrowser:{currentURI:{spec:"https://example.test/page/1"},contentDocument:doc}}};
   assert.equal(vm.runInContext("findPaginationControl(1)",context),rel);
 });
+
+
+test("allows individual keyboard shortcuts to be explicitly disabled",()=>{
+  const {context}=load();
+  context.Services.prefs.prefHasUserValue=(name)=>name.endsWith("next-shortcut");
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("next-shortcut")?"":fallback;
+  const shortcuts=vm.runInContext("getShortcuts()",context);
+  assert.equal(shortcuts.next,"");
+  assert.equal(shortcuts.previous,"Alt+[");
+  assert.equal(shortcuts.jump,"Alt+Shift+P");
+  assert.deepEqual(JSON.parse(JSON.stringify(vm.runInContext("getShortcutWarnings()",context))),[]);
+  assert.equal(vm.runInContext("matches(event,'')",Object.assign(context,{event:{key:']',altKey:true,ctrlKey:false,metaKey:false,shiftKey:false}})),false);
+});
+
+test("does not consume a keyboard event for a disabled shortcut",()=>{
+  const {context,listeners}=load();
+  context.Services.prefs.prefHasUserValue=(name)=>name.endsWith("next-shortcut");
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("next-shortcut")?"":fallback;
+  let prevented=0;
+  listeners.keydown({key:"]",altKey:true,ctrlKey:false,metaKey:false,shiftKey:false,target:{},repeat:false,isComposing:false,preventDefault(){prevented++},stopPropagation(){}});
+  assert.equal(prevented,0);
+});
+
+test("imports an empty shortcut as an explicit disabled binding",()=>{
+  const {context}=load();
+  let saved=null;
+  context.Services.prefs.prefHasUserValue=()=>false;
+  context.Services.prefs.getBoolPref=(_name,fallback)=>fallback;
+  context.Services.prefs.getIntPref=(_name,fallback)=>fallback;
+  context.Services.prefs.setStringPref=(name,value)=>{if(name.endsWith("next-shortcut"))saved=value};
+  const payload=JSON.stringify({schemaVersion:1,settings:{"next-shortcut":""}});
+  const result=vm.runInContext("importSettings(payload)",Object.assign(context,{payload}));
+  assert.equal(result.success,true);
+  assert.equal(saved,"");
+});

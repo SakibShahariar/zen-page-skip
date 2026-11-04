@@ -12,7 +12,7 @@ Default bindings:
 | Previous page | `Alt + [` |
 | Jump to page | `Alt + Shift + P` |
 
-Shortcuts accept modifier combinations such as `Ctrl+Alt+Right`, `Cmd+Shift+N`, `Super+N`, and `Option+P`. Modifier names are case-insensitive.
+Shortcuts accept modifier combinations such as `Ctrl+Alt+Right`, `Cmd+Shift+N`, `Super+N`, and `Option+P`. Modifier names are case-insensitive. Set an individual shortcut to an empty value to disable that action's keyboard binding.
 
 Supported modifiers:
 
