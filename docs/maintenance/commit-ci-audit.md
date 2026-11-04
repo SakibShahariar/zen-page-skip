@@ -24,7 +24,7 @@ Persistent repository-specific record of commit-level CI checks and red-cross in
 
 - Repository: `SakibShahariar/zen-page-skip`
 - Default branch: `main`
-- Checkpoint SHA: `424289d8134ad3a97506d27cca65893c91c0c303`
+- Checkpoint SHA: `4736a05362d757a8b195da17f2852301b40db6ca`
 - Initialized: 2026-11-02
 - Baseline: latest branch tip queried through combined commit-status endpoint; empty status list recorded as **unavailable**, not green/red. Older history was not retroactively audited during setup.
 - Updated: 2026-11-04
@@ -113,3 +113,9 @@ No red result was confirmed from the status data retrieved during setup.
 | `424289d8134ad3a97506d27cca65893c91c0c303` | test: align diagnostic history test with privacy filter (#46) | green | 2026-11-04 | [41829739054](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41829739054) |
 
 - `759ddc94fd01881bc667cf6c93a9f51b7a52da94`: the diagnostics privacy filter intentionally removed arbitrary detail keys, so the existing bounded-history test's custom `i` field was no longer recorded. Updated the test to use the allowlisted numeric `score` field in `424289d8134ad3a97506d27cca65893c91c0c303`; rerun passed.
+
+
+| `4427a9bd834ca0b5f7d0a39db1fa5b7002b56978` | feat: explain site-rule detection outcomes (#46) | red | 2026-11-04 | [41829994328](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41829994328) |
+| `4736a05362d757a8b195da17f2852301b40db6ca` | test: match selector diagnostic fixture to current host (#46) | green | 2026-11-04 | [41830096612](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41830096612) |
+
+- `4427a9bd834ca0b5f7d0a39db1fa5b7002b56978`: the selector-diagnostic test configured a rule for `example.test` while its browser fixture was on `private.example`, so no rule was matched. Corrected the fixture host in `4736a05362d757a8b195da17f2852301b40db6ca`; rerun passed.

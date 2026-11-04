@@ -969,3 +969,17 @@ test("reports site-rule selector misses without exposing page data",()=>{
   assert.equal(diagnostics.includes("private.example"),false);
   assert.equal(diagnostics.includes("secret"),false);
 });
+
+
+test("reports custom page-template validation failures without exposing destinations",()=>{
+  const {context}=load();
+  context.Services.prefs.getBoolPref=()=>true;
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?JSON.stringify({"private.example":{pageTemplate:"https://evil.example/page/{page}"}}):fallback;
+  const result=vm.runInContext("getCustomPageTemplate('https://private.example/archive/page/2')",context);
+  const diagnostics=vm.runInContext("getDiagnostics()",context);
+  assert.equal(result,null);
+  assert.equal(diagnostics.includes("custom-page-template-invalid"),true);
+  assert.equal(diagnostics.includes("cross-origin"),true);
+  assert.equal(diagnostics.includes("evil.example"),false);
+  assert.equal(diagnostics.includes("private.example"),false);
+});

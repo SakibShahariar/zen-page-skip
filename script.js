@@ -80,20 +80,30 @@ function escapeRegExp(value) {
 
 function getCustomPageTemplate(url) {
   const template = getSiteRule(url)?.pageTemplate;
-  if (!template || template.split("{page}").length !== 2) return null;
+  if (!template) return null;
+  if (template.split("{page}").length !== 2) {
+    debugLog("custom-page-template-invalid", { reason: "placeholder-count" });
+    return null;
+  }
   try {
     const current = new URL(url);
     const marker = "ZENPAGESKIPMARKER";
     const templateUrl = new URL(template.replace("{page}", marker), current.href);
-    if (templateUrl.origin !== current.origin) return null;
+    if (templateUrl.origin !== current.origin) {
+      debugLog("custom-page-template-invalid", { reason: "cross-origin" });
+      return null;
+    }
     const parts = templateUrl.href.split(marker);
-    if (parts.length !== 2) return null;
+    if (parts.length !== 2) {
+      debugLog("custom-page-template-invalid", { reason: "placeholder-count" });
+      return null;
+    }
     const expression = new RegExp("^" + escapeRegExp(parts[0]) + "(\\d+)" + escapeRegExp(parts[1]) + "$");
     const match = current.href.match(expression);
     if (!match) return null;
     return { template, page: Number(match[1]), current };
   } catch (error) {
-    debugLog("custom-page-template-invalid", {});
+    debugLog("custom-page-template-invalid", { reason: "invalid-url" });
     return null;
   }
 }
