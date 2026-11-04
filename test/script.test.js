@@ -401,6 +401,10 @@ test("exports a versioned settings snapshot",()=>{
 test("imports valid settings selectively and clamps numeric values",()=>{
   const {context}=load();
   const written={};
+  context.Services.prefs.prefHasUserValue=()=>false;
+  context.Services.prefs.clearUserPref=(name)=>{delete written[name]};
+  context.Services.prefs.getBoolPref=(_name,fallback)=>fallback;
+  context.Services.prefs.getIntPref=(_name,fallback)=>fallback;
   context.Services.prefs.setStringPref=(name,value)=>{written[name]=value};
   context.Services.prefs.setBoolPref=(name,value)=>{written[name]=value};
   context.Services.prefs.setIntPref=(name,value)=>{written[name]=value};
