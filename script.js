@@ -304,7 +304,7 @@ function importSettings(input) {
     return { success: false, imported: [], rejected: ["unsupported schema"], ignored: [] };
   }
 
-  const imported = [];
+  const staged = [];
   const rejected = [];
   const ignored = [];
   for (const [name, value] of Object.entries(payload.settings)) {
@@ -314,18 +314,22 @@ function importSettings(input) {
       continue;
     }
     const validated = validateImportedSetting(name, value, schema);
-    if (!validated.valid) {
-      rejected.push(name);
-      continue;
-    }
+    if (!validated.valid) rejected.push(name);
+    else staged.push({ name, schema, value: validated.value });
+  }
+  if (rejected.length) return { success: false, imported: [], rejected, ignored };
+
+  const imported = [];
+  for (const item of staged) {
     try {
-      const key = PREF_BRANCH + name;
-      if (schema.type === "boolean") Services.prefs.setBoolPref(key, validated.value);
-      else if (schema.type === "integer") Services.prefs.setIntPref(key, validated.value);
-      else Services.prefs.setStringPref(key, validated.value);
-      imported.push(name);
+      const key = PREF_BRANCH + item.name;
+      if (item.schema.type === "boolean") Services.prefs.setBoolPref(key, item.value);
+      else if (item.schema.type === "integer") Services.prefs.setIntPref(key, item.value);
+      else Services.prefs.setStringPref(key, item.value);
+      imported.push(item.name);
     } catch (error) {
-      rejected.push(name);
+      rejected.push(item.name);
+      break;
     }
   }
   return { success: rejected.length === 0, imported, rejected, ignored };
@@ -550,8 +554,9 @@ function findRelPaginationUrl(direction, document, currentUrl) {
       if (!hasRel(link, direction) || isDisabled(link)) continue;
       const href = link.getAttribute("href")?.trim();
       if (!href || /^(?:javascript|data|vbscript):/i.test(href)) continue;
-      const target = new URL(href, document.baseURI || currentUrl);
-      if (["http:", "https:"].includes(target.protocol) && target.href !== currentUrl) return target.href;
+      const target = normalizeNavigationUrl(href, document.baseURI || currentUrl);
+      const current = normalizeNavigationUrl(currentUrl);
+      if (target && current && target !== current) return target;
     }
   } catch (error) {
     return null;
@@ -742,10 +747,26 @@ function showToast(message) {
   showNotificationToast(message, duration);
 }
 
+function normalizeNavigationUrl(value, baseUrl) {
+  try {
+    const url = new URL(value, baseUrl);
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) return null;
+    url.hostname = url.hostname.toLowerCase();
+    if ((url.protocol === "http:" && url.port === "80") ||
+        (url.protocol === "https:" && url.port === "443")) url.port = "";
+    return url.href;
+  } catch (error) {
+    return null;
+  }
+}
+
 function isHashOnlyNavigation(currentUrl, targetUrl) {
   try {
-    const current = new URL(currentUrl);
-    const target = new URL(targetUrl, current);
+    const normalizedCurrent = normalizeNavigationUrl(currentUrl);
+    const normalizedTarget = normalizeNavigationUrl(targetUrl, currentUrl);
+    if (!normalizedCurrent || !normalizedTarget) return false;
+    const current = new URL(normalizedCurrent);
+    const target = new URL(normalizedTarget);
     return current.origin === target.origin &&
       current.pathname === target.pathname &&
       current.search === target.search &&
