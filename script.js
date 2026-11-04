@@ -1,5 +1,6 @@
 "use strict";
 
+const MOD_VERSION = "0.27.0";
 const PREF_BRANCH = "zen-page-skip.";
 const DEFAULT_NEXT_SHORTCUT = "Alt+]";
 const DEFAULT_PREVIOUS_SHORTCUT = "Alt+[";
@@ -616,8 +617,38 @@ function getDiagnostics() {
 }
 
 window.zenPageSkipGetDiagnostics = getDiagnostics;
+function createTroubleshootingReport() {
+  const report = {
+    product: "Zen Page Skip",
+    version: MOD_VERSION,
+    diagnosticsEnabled: getDebugEnabled(),
+    browser: Services.appinfo ? {
+      name: Services.appinfo.name || null,
+      version: Services.appinfo.version || null
+    } : null,
+    generatedAt: new Date().toISOString(),
+    diagnostics: getDebugEnabled() ? diagnosticEntries.slice(-50) : [],
+    privacy: {
+      pageContentIncluded: false,
+      controlLabelsIncluded: false,
+      hostnamesIncluded: false,
+      urlsIncluded: false,
+      queryParametersIncluded: false,
+      fragmentsIncluded: false,
+      telemetrySent: false
+    }
+  };
+  if (!report.diagnosticsEnabled) {
+    report.message = "Enable zen-page-skip.debug-mode, reproduce the issue, then generate the report again.";
+  }
+  return JSON.stringify(report, null, 2);
+}
+
+window.zenPageSkipCreateTroubleshootingReport = createTroubleshootingReport;
+
 window.addEventListener("unload", () => {
   if (window.zenPageSkipGetDiagnostics === getDiagnostics) delete window.zenPageSkipGetDiagnostics;
+  if (window.zenPageSkipCreateTroubleshootingReport === createTroubleshootingReport) delete window.zenPageSkipCreateTroubleshootingReport;
 }, { once: true });
 
 function getPaginationWords(direction) {

@@ -1124,3 +1124,33 @@ test("binds the per-tab pause toggle to its configurable shortcut",()=>{
   assert.equal(vm.runInContext("isCurrentTabPaused()",context),true);
   assert.equal(prevented,1);
 });
+
+
+test("creates an opt-in troubleshooting report with version and sanitized local diagnostics",()=>{
+  const {context}=load();
+  context.Services.appinfo={name:"Zen Browser",version:"1.99"};
+  context.Services.prefs.getBoolPref=()=>true;
+  vm.runInContext("debugLog('candidate-scored',{label:'Private page heading',target:'https://secret.example/page?token=abc',tag:'A',score:90,threshold:70,accepted:true})",context);
+  const report=JSON.parse(vm.runInContext("createTroubleshootingReport()",context));
+  assert.equal(report.product,"Zen Page Skip");
+  assert.equal(report.version,"0.27.0");
+  assert.deepEqual(JSON.parse(JSON.stringify(report.browser)),{name:"Zen Browser",version:"1.99"});
+  assert.equal(report.diagnostics.length,1);
+  assert.equal(report.privacy.pageContentIncluded,false);
+  assert.equal(report.privacy.urlsIncluded,false);
+  const serialized=JSON.stringify(report);
+  assert.equal(serialized.includes("Private page heading"),false);
+  assert.equal(serialized.includes("secret.example"),false);
+  assert.equal(serialized.includes("token"),false);
+  assert.equal(serialized.includes("abc"),false);
+});
+
+test("does not include diagnostic history in reports unless diagnostics are enabled",()=>{
+  const {context}=load();
+  context.Services.prefs.getBoolPref=()=>false;
+  vm.runInContext("debugLog('candidate-scored',{score:90})",context);
+  const report=JSON.parse(vm.runInContext("createTroubleshootingReport()",context));
+  assert.equal(report.diagnosticsEnabled,false);
+  assert.deepEqual(JSON.parse(JSON.stringify(report.diagnostics)),[]);
+  assert.equal(report.message.includes("debug-mode"),true);
+});

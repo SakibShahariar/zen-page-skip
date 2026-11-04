@@ -134,6 +134,14 @@ Copy it with:
 
 ```js
 copy(window.zenPageSkipGetDiagnostics())
+
+Generate a privacy-filtered troubleshooting report and copy it explicitly:
+
+```js
+copy(window.zenPageSkipCreateTroubleshootingReport())
+```
+
+The report includes the mod version, browser name/version when available, and the latest 50 local diagnostic entries. It omits page content, control labels, hostnames, URLs, query parameters, and fragments. No report is sent automatically; inspect it before sharing.
 ```
 
 Diagnostics are off by default. Rule authors can inspect selector outcomes such as selected, not found, rejected, or syntactically invalid, alongside generic candidate rejection reasons. Custom page-template failures are classified by reason without including the rejected destination. The mod does not send telemetry or diagnostic data to a server.

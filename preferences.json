@@ -99,6 +99,20 @@
       "description": "JSON object keyed by hostname or *.example.com. Supports enabled, action (auto|click|url), nextSelector, previousSelector, nextWords, previousWords, confidenceThreshold, pageTemplate, infiniteScroll (allow|block), and hashMode (verify|allow|disable).",
       "type": "string",
       "defaultValue": ""
+    },
+    {
+      "name": "zen-page-skip.toggle-site-shortcut",
+      "title": "Toggle current site shortcut",
+      "description": "Pause or re-enable pagination for the current hostname.",
+      "type": "string",
+      "defaultValue": "Alt+Shift+D"
+    },
+    {
+      "name": "zen-page-skip.toggle-tab-shortcut",
+      "title": "Toggle current tab pause shortcut",
+      "description": "Pause or resume pagination for the selected tab until it is resumed or closed.",
+      "type": "string",
+      "defaultValue": "Alt+Shift+X"
     }
   ]
 }
