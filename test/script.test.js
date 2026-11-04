@@ -640,3 +640,70 @@ test("validates hash-based numbered fallbacks against observed same-origin pages
   assert.equal(result.valid,true);
   assert.deepEqual(JSON.parse(JSON.stringify(result.observedPages)),[1,3]);
 });
+
+
+test("normalizes safe HTTP URLs and rejects unsafe schemes or credentials",()=>{
+  const {context}=load();
+  const result=vm.runInContext("({canonical:normalizeNavigationUrl('HTTPS://EXAMPLE.TEST:443/page/2'),relative:normalizeNavigationUrl('../page/2','https://example.test/archive/page/1'),javascript:normalizeNavigationUrl('javascript:alert(1)'),data:normalizeNavigationUrl('data:text/html,unsafe'),credentials:normalizeNavigationUrl('https://user:pass@example.test/page/2')})",context);
+  assert.deepEqual(JSON.parse(JSON.stringify(result)),{
+    canonical:"https://example.test/page/2",
+    relative:"https://example.test/page/2",
+    javascript:null,
+    data:null,
+    credentials:null
+  });
+});
+
+test("rejects canonical self-navigation before invoking browser APIs",()=>{
+  const {context}=load();
+  let loads=0;
+  const tab={linkedBrowser:{
+    currentURI:{spec:"https://EXAMPLE.test:443/page/2"},
+    loadURI(){loads++}
+  }};
+  const result=vm.runInContext("navigate(tab,'https://example.test/page/2')",Object.assign(context,{tab}));
+  assert.equal(result,false);
+  assert.equal(loads,0);
+});
+
+test("rejects unsafe navigation targets before invoking browser APIs",()=>{
+  const {context}=load();
+  let loads=0;
+  const tab={linkedBrowser:{
+    currentURI:{spec:"https://example.test/page/1"},
+    loadURI(){loads++}
+  }};
+  const result=vm.runInContext("navigate(tab,'javascript:alert(1)')",Object.assign(context,{tab}));
+  assert.equal(result,false);
+  assert.equal(loads,0);
+});
+
+test("validates every known imported setting before writing any preference",()=>{
+  const {context}=load();
+  let writes=0;
+  context.Services.prefs.setStringPref=()=>{writes++};
+  context.Services.prefs.setBoolPref=()=>{writes++};
+  context.Services.prefs.setIntPref=()=>{writes++};
+  const payload=JSON.stringify({schemaVersion:1,settings:{
+    "next-shortcut":"Ctrl+Alt+Right",
+    "toast-enabled":false,
+    "cooldown-ms":"invalid"
+  }});
+  const result=vm.runInContext("importSettings(payload)",Object.assign(context,{payload}));
+  assert.equal(result.success,false);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.imported)),[]);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.rejected)),["cooldown-ms"]);
+  assert.equal(writes,0);
+});
+
+test("contains unexpected pagination and direct-jump failures",()=>{
+  const {context}=load();
+  const messages=[];
+  vm.runInContext("showToast=(message)=>toastMessages.push(message)",Object.assign(context,{toastMessages:messages}));
+  vm.runInContext("jumpInternal=()=>{throw Error('pagination failure')}",context);
+  vm.runInContext("jump(1)",context);
+  vm.runInContext("jumpToPageInternal=()=>{throw Error('jump failure')}",context);
+  vm.runInContext("jumpToPage()",context);
+  assert.equal(messages.includes("Pagination failed safely; see local diagnostics"),true);
+  assert.equal(messages.includes("Jump failed safely; see local diagnostics"),true);
+});
