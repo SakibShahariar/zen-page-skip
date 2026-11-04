@@ -145,3 +145,6 @@ No red result was confirmed from the status data retrieved during setup.
 
 
 | `2845facd8f821a449b4dd7f6037ecee0fdb99ad7` | docs: update README for site and tab pause controls (#32, #45) | green | 2026-11-04 | [41832310152](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41832310152) |
+
+
+| `a97551c3afc384d5d404c6f6d8d5ea59094d92f7` | feat: add privacy-safe troubleshooting reports (#36) | green | 2026-11-04 | [41832615755](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41832615755) |

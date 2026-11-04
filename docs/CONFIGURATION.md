@@ -130,10 +130,11 @@ For each action, the mod reads the selected tab's current URL and document. This
 
 Enable `zen-page-skip.debug-mode` to log candidate scores, rejection reasons, and navigation decisions in the browser console. The diagnostic buffer is kept in memory and limited to the latest 100 entries. Diagnostics include generic rule/method names, control tags, scores, and rejection reasons, but omit page labels, page text, hostnames, URLs, query parameters, fragments, and raw error messages.
 
-Copy it with:
+Copy the local diagnostic buffer:
 
 ```js
 copy(window.zenPageSkipGetDiagnostics())
+```
 
 Generate a privacy-filtered troubleshooting report and copy it explicitly:
 
@@ -142,7 +143,6 @@ copy(window.zenPageSkipCreateTroubleshootingReport())
 ```
 
 The report includes the mod version, browser name/version when available, and the latest 50 local diagnostic entries. It omits page content, control labels, hostnames, URLs, query parameters, and fragments. No report is sent automatically; inspect it before sharing.
-```
 
 Diagnostics are off by default. Rule authors can inspect selector outcomes such as selected, not found, rejected, or syntactically invalid, alongside generic candidate rejection reasons. Custom page-template failures are classified by reason without including the rejected destination. The mod does not send telemetry or diagnostic data to a server.
 

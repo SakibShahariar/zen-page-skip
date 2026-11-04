@@ -1154,3 +1154,11 @@ test("does not include diagnostic history in reports unless diagnostics are enab
   assert.deepEqual(JSON.parse(JSON.stringify(report.diagnostics)),[]);
   assert.equal(report.message.includes("debug-mode"),true);
 });
+
+
+test("declares the new site and tab pause shortcuts in the Sine preferences metadata",()=>{
+  const metadata=JSON.parse(fs.readFileSync(path.join(__dirname,"../preferences.json"),"utf8"));
+  const entries=new Map(metadata.preferences.map(item=>[item.name,item]));
+  assert.equal(entries.get("zen-page-skip.toggle-site-shortcut").defaultValue,"Alt+Shift+D");
+  assert.equal(entries.get("zen-page-skip.toggle-tab-shortcut").defaultValue,"Alt+Shift+X");
+});
