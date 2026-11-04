@@ -135,3 +135,17 @@ Diagnostics are off by default. The mod does not send telemetry or diagnostic da
 - Other Firefox-based browsers may work, but are not runtime-verified.
 - Sites with custom pagination that has no accessible label, recognizable metadata, or pagination container may not be detectable.
 - Infinite-scroll feeds are not treated as numbered pagination unless an explicit pagination container or site-specific selector is present.
+
+## Security boundaries
+
+Site rules are local preferences. They are parsed as a JSON object; malformed JSON, arrays, and values that are not rule objects are ignored. A rule matches the exact hostname, or subdomains when its key begins with `*.`; wildcard rules do not match the apex hostname. When multiple rules match, the longest matching key takes precedence.
+
+Rule values are bounded before use: selectors are limited to 512 characters, custom labels to 80 characters each (up to 50 per direction), and page templates to 512 characters. Confidence thresholds are clamped to 50–150. Unsupported action, hash, and infinite-scroll values fall back to safe defaults. Site-rule JSON in the preference is limited to 8192 characters.
+
+Custom page templates must contain exactly one `{page}` placeholder. The template is resolved against the current URL and accepted only when it remains on the current origin. Generated page numbers must be positive safe integers no greater than 1,000,000. The built-in numbered URL patterns are also bounded against page numbers below 1.
+
+Pagination links reject `javascript:`, `data:`, and `vbscript:` URLs; document-level `rel=next/prev` targets are limited to HTTP(S). Automatically selected controls exclude disabled, download, submit, dialog/menu, and commonly destructive controls. User-configured selectors still go through these safety checks. The extension does not fetch candidate URLs for validation; numbered fallback validation uses same-origin numbered links already present in the page.
+
+Settings import accepts schema version 1 only, with a 65,536-character input limit. Unknown keys are ignored; known values are type-checked, string values are limited to 8,192 characters, shortcut strings are parsed, and supported numeric settings are clamped. Import is not a transaction: valid entries may be applied even if other entries are rejected. Review imported settings before using them, especially site rules and selectors.
+
+These checks reduce accidental or unsafe navigation but do not guarantee that a website's controls are benign. Site-specific rules are user-supplied configuration and should be trusted only when you understand their effect.
