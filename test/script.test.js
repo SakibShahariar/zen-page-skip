@@ -31,8 +31,11 @@ function el({tagName="A", text="Next", attrs={}, pagination=false, form=false}={
     getAttribute:(name)=>attrs[name] ?? null,
     hasAttribute:(name)=>Object.hasOwn(attrs,name),
     classList:{contains:()=>false},
-    closest:(selector)=>selector==="form"&&form?{}:
-      (selector.includes("pagination")||selector.includes("pager")||selector.includes("navigation")||selector==="nav")&&pagination?{}:null,
+    closest:(selector)=>{
+      if(selector==="form"&&form) return {};
+      if(selector.includes("carousel")||selector.includes("slider")||selector.includes("recommend")||selector.includes("post-navigation")||selector.includes("article-navigation")) return null;
+      return (selector.includes("pagination")||selector.includes("pager"))&&pagination?{}:null;
+    },
     click(){}, scrollIntoView(){}
   };
 }
