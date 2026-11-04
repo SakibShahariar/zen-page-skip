@@ -1274,3 +1274,15 @@ test("explainer reports disabled sites and invalid directions without side effec
   assert.equal(disabled.reason,"site-disabled");
   assert.equal(browser.currentURI.spec,"https://example.test/page/1");
 });
+
+
+test("distributable script matches the ordered source modules",()=>{
+  const sourceDirectory=path.join(__dirname,"../src");
+  const modules=fs.readdirSync(sourceDirectory)
+    .filter((name)=>/^\\d{2}-.+\\.js$/.test(name))
+    .sort();
+  assert.equal(modules.length,10);
+  const generated=modules.map((name)=>fs.readFileSync(path.join(sourceDirectory,name),"utf8")).join("");
+  const entryPoint=fs.readFileSync(path.join(__dirname,"../script.js"),"utf8");
+  assert.equal(entryPoint,generated);
+});

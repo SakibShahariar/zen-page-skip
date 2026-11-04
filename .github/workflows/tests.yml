@@ -22,6 +22,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Check generated entry point
+        run: node scripts/build.js --check
+
       - name: Check JavaScript syntax
         run: node --check script.js
 

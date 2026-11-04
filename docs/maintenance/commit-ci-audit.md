@@ -24,12 +24,12 @@ Persistent repository-specific record of commit-level CI checks and red-cross in
 
 - Repository: `SakibShahariar/zen-page-skip`
 - Default branch: `main`
-- Checkpoint SHA: `abffb4e36e6059ae00ecfb67fe696ce5967b3161`
+- Checkpoint SHA: `7f8faa169fb3a4126c07e836c1141b9a633c76af`
 - Initialized: 2026-11-02
 - Baseline: latest branch tip queried through combined commit-status endpoint; empty status list recorded as **unavailable**, not green/red. Older history was not retroactively audited during setup.
 - Updated: 2026-11-04
-- Reviewed range: `949eca141fe491238651f1896ebd006aaf065301` → `78f4b4d593827db2d8f8caed340c961fde60ad1c` (18 commits; 15 green, 3 red, all failures investigated and followed by green fixes).
-- Next session: review commits after this checkpoint; carry forward the four historical red entries and their fixes below.
+- Reviewed range: `949eca141fe491238651f1896ebd006aaf065301` → `7f8faa169fb3a4126c07e836c1141b9a633c76af` (48 commits; 39 green, 9 red, all failures investigated and followed by green fixes).
+- Next session: review commits after this checkpoint; carry forward the nine historical red entries and their fixes below.
 
 ## Initial baseline
 
@@ -83,86 +83,45 @@ No red result was confirmed from the status data retrieved during setup.
 | `4fc7f0e3e008f7e6b3de569d44c3278a5765a0c0` | test: cover imported site-rule validation | green | 2026-11-04 | [41827492913](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41827492913) |
 | `edaa78fb6b213d2174e59f4c0e0a6851a6c92a8d` | fix: guard repeated and cyclic pending navigation | green | 2026-11-04 | [41827735296](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41827735296) |
 | `1f1ba6c906394a174486fefc3ed6724df5b23510` | test: cover pending pagination navigation cycles | green | 2026-11-04 | [41827772591](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41827772591) |
-| `78f4b4d593827db2d8f8caed340c961fde60ad1c` | docs: clarify URL and site-rule security boundaries | green | 2026-11-04 | [41827957757](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41827957757) |
-
-### Failure investigations
-
-- `d160a345f5dd657a9adef4033e7a506577346517`: the new relative-URL test expected resolution against the wrong directory. This was a test expectation error, not a production-code failure. Corrected in `a852663b0c46e60ba69de239bd1ae11dee11f707`; rerun passed.
-- `78b3952cc67867d081c78aabe823067d0bf46f55` and `379d11938b0aba00519ac08aa67e45f74991f692`: the existing import-success test mock did not provide preference getters needed by the new snapshot phase. Updated the test fixture in `c719608cefe388704bebf208afcf1ec8458e0d52`; rerun passed. No production regression was identified.
-
-
+| `78f4b4d593827db2d8f8caed340c961fde60ad1c` | docs: clarify URL and site-rule security boundaries (#28) | green | 2026-11-04 | [41827957757](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41827957757) |
 | `208b958c26884a069bfcaaea336eb1d295e2c831` | fix: filter unrelated pagination controls (#35, #40) | red | 2026-11-04 | [41828391447](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41828391447) |
 | `18c81616b19ae31b7bbdbe5dc27e72bf74fc31b8` | test: model excluded widget contexts precisely (#35, #40) | green | 2026-11-04 | [41828485352](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41828485352) |
-
-- `208b958c26884a069bfcaaea336eb1d295e2c831`: an existing DOM mock treated any selector containing the word `navigation` as a pagination container. The narrower production selector exposed that fixture assumption. Corrected the mock to distinguish excluded widget selectors from pagination landmarks in `18c81616b19ae31b7bbdbe5dc27e72bf74fc31b8`; rerun passed with all 66 tests.
-
-
 | `166e5337e786bf16e07b4e005a2d5e125a4d5c38` | docs: explain pagination candidate safeguards (#35, #40) | green | 2026-11-04 | [41828649571](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41828649571) |
-
-
 | `1b6daa482d52fac091c41f3819a6d08487c6be7e` | feat: resolve accessible pagination labels (#41) | green | 2026-11-04 | [41828876101](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41828876101) |
-
-
 | `7b1c1ff2b690ed69d6d44bb81be6549e6d8aa35c` | feat: allow disabling individual keyboard shortcuts (#33) | green | 2026-11-04 | [41829121591](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41829121591) |
-
-
 | `132f4e69b388a620d12a59f85b4937d8242d94b9` | test: cover pagination controls added after load (#37) | green | 2026-11-04 | [41829292384](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41829292384) |
-
-
 | `759ddc94fd01881bc667cf6c93a9f51b7a52da94` | fix: keep pagination diagnostics privacy-safe (#46) | red | 2026-11-04 | [41829602099](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41829602099) |
 | `424289d8134ad3a97506d27cca65893c91c0c303` | test: align diagnostic history test with privacy filter (#46) | green | 2026-11-04 | [41829739054](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41829739054) |
-
-- `759ddc94fd01881bc667cf6c93a9f51b7a52da94`: the diagnostics privacy filter intentionally removed arbitrary detail keys, so the existing bounded-history test's custom `i` field was no longer recorded. Updated the test to use the allowlisted numeric `score` field in `424289d8134ad3a97506d27cca65893c91c0c303`; rerun passed.
-
-
 | `4427a9bd834ca0b5f7d0a39db1fa5b7002b56978` | feat: explain site-rule detection outcomes (#46) | red | 2026-11-04 | [41829994328](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41829994328) |
 | `4736a05362d757a8b195da17f2852301b40db6ca` | test: match selector diagnostic fixture to current host (#46) | green | 2026-11-04 | [41830096612](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41830096612) |
-
-- `4427a9bd834ca0b5f7d0a39db1fa5b7002b56978`: the selector-diagnostic test configured a rule for `example.test` while its browser fixture was on `private.example`, so no rule was matched. Corrected the fixture host in `4736a05362d757a8b195da17f2852301b40db6ca`; rerun passed.
-
-
 | `9b899fd9cbeeaf51201fdfbd78415b8fbaf3406f` | fix: explain invalid site-rule page templates (#46) | green | 2026-11-04 | [41830365401](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41830365401) |
-
-
 | `ba370f5bbc22785b5e3154330461b3986b264183` | test: cover page-template diagnostic reasons (#46) | green | 2026-11-04 | [41830698327](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41830698327) |
-
-
 | `ed7f8344e9fc05ecd5f53cbbf66853c5b41b51e4` | feat: preview and confirm settings imports (#44) | green | 2026-11-04 | [41831078381](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41831078381) |
-
-
 | `7054cc71055dc93d082a5291474afe479ece9eb6` | fix: format settings import confirmation summary (#44) | red | 2026-11-04 | [41831262468](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41831262468) |
-- `7054cc71055dc93d082a5291474afe479ece9eb6`: the test asserted a literal backslash-`n` instead of a newline in the confirmation summary. Corrected the assertion to check the actual newline character in this commit.
-
-
 | `3e6e522c9aa0391bb1f765d00bf2dc6d2f932d3c` | test: assert newline in import confirmation (#44) | green | 2026-11-04 | [41831414684](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41831414684) |
-
-
-| `abffb4e36e6059ae00ecfb67fe696ce5967b3161` | feat: add a current-site pagination toggle (#45) | green | 2026-11-04 | [41831819940](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41831819940) |
-
-
 | `abffb4e36e6059ae00ecfb67fe696ce5967b3161` | feat: add a current-site pagination toggle (#45) | green | 2026-11-04 | [41831819940](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41831819940) |
 | `bc47edc89a8982974ac81680ddec38c6bab8f44b` | feat: add per-tab pagination pause (#32) | green | 2026-11-04 | [41832093828](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41832093828) |
-
-
 | `2845facd8f821a449b4dd7f6037ecee0fdb99ad7` | docs: update README for site and tab pause controls (#32, #45) | green | 2026-11-04 | [41832310152](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41832310152) |
-
-
-| `a97551c3afc384d5d404c6f6d8d5ea59094d92f7` | feat: add privacy-safe troubleshooting reports (#36) | green | 2026-11-04 | [41832615755](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41832615755) |
-
-
 | `a97551c3afc384d5d404c6f6d8d5ea59094d92f7` | feat: add privacy-safe troubleshooting reports (#36) | green | 2026-11-04 | [41832615755](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41832615755) |
 | `9ace0a893f19c179fbfd4772a46f514b6a825de2` | docs: fix troubleshooting report instructions (#36) | green | 2026-11-04 | [41832824311](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41832824311) |
-
-
 | `8ef4a0df9bd212664509602ef48a309cd5d3c520` | fix: canonicalize trailing-dot navigation hosts (#38) | green | 2026-11-04 | [41833003289](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41833003289) |
 | `1411f63838d880eb57b96a634acac37f0db364dd` | test: verify default preference rollback (#42) | green | 2026-11-04 | [41833080384](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41833080384) |
 | `7e0926b184a5c82f788bc1fc07571c28dda7861c` | docs: add Zen and Sine compatibility matrix (#30) | green | 2026-11-04 | [41833172282](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41833172282) |
-
-
 | `e0c22d28a4738dd158797f45008b52c50fa260e9` | test: keep compatibility matrix claims explicit (#30) | green | 2026-11-04 | [41833389942](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41833389942) |
-
-
 | `86f464d780a2c4e369d534e1666500e68a8fb10d` | fix: match site rules for trailing-dot hosts (#38) | green | 2026-11-04 | [41833542900](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41833542900) |
 | `901fe31d1371612e9c851015fcfa625f2ca6119e` | feat: explain pagination decisions without navigating (#31) | red | 2026-11-04 | [41833762896](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41833762896) |
+| `23c6bf70b714359635ef7c589b95ff536fb6cc33` | test: correct relative pagination destination expectation (#31) | green | 2026-11-04 | [41833943525](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41833943525) |
+| `24f2c3f49e53d0d5afc2a7e362d5578e760d2c11` | fix: validate imported site-rule host labels (#42) | red | 2026-11-04 | [41834225405](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41834225405) |
+| `536e95c72d29e96687c6a155297c98da2808de15` | test: fix long hostname fixture syntax (#42) | green | 2026-11-04 | [41834329501](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41834329501) |
+| `7f8faa169fb3a4126c07e836c1141b9a633c76af` | fix: contain host toast API failures (#43) | green | 2026-11-04 | [41834470937](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41834470937) |
 
-- `901fe31d1371612e9c851015fcfa625f2ca6119e`: the explainer test expected `../page/2` to resolve from the wrong directory. Relative to `/archive/page/1`, the actual destination is `/archive/page/2`; corrected the assertion in this commit.
+### Failure investigations
+
+- `d160a345f5dd657a9adef4033e7a506577346517`: relative-URL test expected the wrong base-directory resolution. Corrected in `a852663b0c46e60ba69de239bd1ae11dee11f707`; rerun passed.
+- `78b3952cc67867d081c78aabe823067d0bf46f55` and `379d11938b0aba00519ac08aa67e45f74991f692`: import test mocks lacked preference getters required by snapshot/rollback. Corrected in `c719608cefe388704bebf208afcf1ec8458e0d52`; rerun passed.
+- `208b958c26884a069bfcaaea336eb1d295e2c831`: the test DOM mock treated the excluded-widget selector's word "navigation" as a pagination landmark. Corrected in `18c81616b19ae31b7bbdbe5dc27e72bf74fc31b8`.
+- `759ddc94fd01881bc667cf6c93a9f51b7a52da94`: privacy filtering removed the test's arbitrary detail key. The history test now uses an allowlisted numeric field in `424289d8134ad3a97506d27cca65893c91c0c303`.
+- `4427a9bd834ca0b5f7d0a39db1fa5b7002b56978`: selector diagnostic test configured a rule for a different host than the browser fixture. Corrected in `4736a05362d757a8b195da17f2852301b40db6ca`.
+- `7054cc71055dc93d082a5291474afe479ece9eb6`: confirmation test asserted a literal backslash-`n` instead of a newline. Corrected in `3e6e522c9aa0391bb1f765d00bf2dc6d2f932d3c`.
+- `901fe31d1371612e9c851015fcfa625f2ca6119e`: explainer test expected `../page/2` to resolve from the wrong directory. Corrected in `23c6bf70b714359635ef7c589b95ff536fb6cc33`.
+- `24f2c3f49e53d0d5afc2a7e362d5578e760d2c11`: a long-host test fixture used an invalid object-literal key expression. Corrected with a computed property key in `536e95c72d29e96687c6a155297c98da2808de15`.

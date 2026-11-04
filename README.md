@@ -46,12 +46,16 @@ Zen Browser with Sine is the intended host. Browser/Sine version support and liv
 
 ## Development
 
-Requires Node.js. Run the checks with:
+Requires Node.js. Edit the ordered source modules in `src/`, then regenerate the single Sine entry point:
 
 ```sh
+node scripts/build.js
+node scripts/build.js --check
 node --check script.js
 node --test
 ```
+
+`script.js` is generated output; make implementation changes in `src/`. The numbered module filenames define concatenation order.
 
 GitHub Actions runs these checks on pushes and pull requests to `main`, using Node.js 22.
 
