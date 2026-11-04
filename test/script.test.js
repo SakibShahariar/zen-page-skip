@@ -644,10 +644,10 @@ test("validates hash-based numbered fallbacks against observed same-origin pages
 
 test("normalizes safe HTTP URLs and rejects unsafe schemes or credentials",()=>{
   const {context}=load();
-  const result=vm.runInContext("({canonical:normalizeNavigationUrl('HTTPS://EXAMPLE.TEST:443/page/2'),relative:normalizeNavigationUrl('../page/2','https://example.test/archive/page/1'),javascript:normalizeNavigationUrl('javascript:alert(1)'),data:normalizeNavigationUrl('data:text/html,unsafe'),credentials:normalizeNavigationUrl('https://user:pass@example.test/page/2')})",context);
+  const result=vm.runInContext("({canonical:normalizeNavigationUrl('HTTPS://EXAMPLE.TEST:443/page/2'),relative:normalizeNavigationUrl('../page%202?sort=recent#section','https://example.test/archive/page/1'),javascript:normalizeNavigationUrl('javascript:alert(1)'),data:normalizeNavigationUrl('data:text/html,unsafe'),credentials:normalizeNavigationUrl('https://user:pass@example.test/page/2')})",context);
   assert.deepEqual(JSON.parse(JSON.stringify(result)),{
     canonical:"https://example.test/page/2",
-    relative:"https://example.test/archive/page/2",
+    relative:"https://example.test/archive/page%202?sort=recent#section",
     javascript:null,
     data:null,
     credentials:null
@@ -706,4 +706,20 @@ test("contains unexpected pagination and direct-jump failures",()=>{
   vm.runInContext("jumpToPage()",context);
   assert.equal(messages.includes("Pagination failed safely; see local diagnostics"),true);
   assert.equal(messages.includes("Jump failed safely; see local diagnostics"),true);
+});
+
+
+test("rejects malformed site-rule JSON in an imported settings snapshot",()=>{
+  const {context}=load();
+  let writes=0;
+  context.Services.prefs.setStringPref=()=>{writes++};
+  const payload=JSON.stringify({schemaVersion:1,settings:{
+    "next-shortcut":"Ctrl+Alt+Right",
+    "site-rules":"{invalid"
+  }});
+  const result=vm.runInContext("importSettings(payload)",Object.assign(context,{payload}));
+  assert.equal(result.success,false);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.imported)),[]);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.rejected)),["site-rules"]);
+  assert.equal(writes,0);
 });
