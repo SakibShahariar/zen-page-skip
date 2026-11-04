@@ -831,3 +831,28 @@ test("clears the pending cycle guard after the destination page is shown",()=>{
   assert.equal(vm.runInContext("navigate(tab,'https://example.test/page/1')",context),true);
   assert.equal(loads,2);
 });
+
+
+test("rejects hidden controls and controls inside unrelated carousel widgets",()=>{
+  const {context}=load();
+  const hidden=el({attrs:{href:"/page/2",hidden:""}});
+  const carousel=el({attrs:{href:"/carousel/next"}});
+  carousel.closest=(selector)=>selector.includes("carousel")?{}:null;
+  const hiddenByLayout=el({attrs:{href:"/page/2"}});
+  hiddenByLayout.getClientRects=()=>[];
+  const result=vm.runInContext("({hidden:isSafeNavigationControl(hidden),carousel:isSafeNavigationControl(carousel),layout:isSafeNavigationControl(hiddenByLayout)})",Object.assign(context,{hidden,carousel,hiddenByLayout}));
+  assert.deepEqual(JSON.parse(JSON.stringify(result)),{hidden:false,carousel:false,layout:false});
+});
+
+test("prefers pagination landmarks over generic navigation and carousel Next links",()=>{
+  const {context}=load();
+  const globalNext=el({text:"Next",attrs:{href:"/next"}});
+  globalNext.closest=()=>null;
+  const carouselNext=el({text:"Next",attrs:{href:"/carousel/next"}});
+  carouselNext.closest=(selector)=>selector.includes("carousel")?{}:null;
+  const pagerNext=el({text:"Next",attrs:{href:"/page/2"},pagination:true});
+  const doc={querySelectorAll:()=>[globalNext,carouselNext,pagerNext]};
+  const browser={currentURI:{spec:"https://example.test/page/1"},contentDocument:doc};
+  context.window.gBrowser={selectedTab:{linkedBrowser:browser}};
+  assert.equal(vm.runInContext("findPaginationControl(1)",context),pagerNext);
+});

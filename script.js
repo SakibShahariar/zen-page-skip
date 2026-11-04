@@ -618,13 +618,25 @@ function matchesWords(text, words) {
 
 function isDisabled(element) {
   return element.hasAttribute("disabled") ||
+    element.hasAttribute("hidden") ||
+    element.hidden === true ||
+    element.getAttribute("aria-hidden") === "true" ||
     element.getAttribute("aria-disabled") === "true" ||
     element.getAttribute("aria-current") === "page" ||
-    element.classList?.contains("disabled") === true;
+    element.classList?.contains("disabled") === true ||
+    (typeof element.getClientRects === "function" && element.getClientRects().length === 0);
 }
 
 function isInPaginationContext(element) {
-  return Boolean(element.closest('nav, [role="navigation"], [class*="pagination"], [id*="pagination"], [class*="pager"], [id*="pager"]'));
+  return Boolean(element.closest('nav[aria-label*="pagination" i], [role="navigation"][aria-label*="pagination" i], nav[class*="pagination"], [role="navigation"][class*="pagination"], [class*="pagination"], [id*="pagination"], [class*="pager"], [id*="pager"]'));
+}
+
+function isInExcludedWidgetContext(element) {
+  try {
+    return Boolean(element.closest('[role="tablist"], [aria-roledescription="carousel"], [class*="carousel"], [id*="carousel"], [class*="slider"], [id*="slider"], [class*="recommend"], [id*="recommend"], [class*="post-navigation"], [id*="post-navigation"], [class*="article-navigation"], [id*="article-navigation"]'));
+  } catch (error) {
+    return true;
+  }
 }
 
 function isSafeNavigationControl(element, explicitlySelected = false) {
@@ -636,6 +648,7 @@ function isSafeNavigationControl(element, explicitlySelected = false) {
   if (element.getAttribute("aria-haspopup") || element.getAttribute("aria-expanded") === "true") return false;
   if (["dialog", "menuitem", "menuitemcheckbox", "menuitemradio"].includes(role)) return false;
   if (element.closest('dialog, [role="dialog"]')) return false;
+  if (!explicitlySelected && isInExcludedWidgetContext(element)) return false;
   const label = normalizedText(element);
   const destructive = ["delete", "remove", "unsubscribe", "purchase", "buy", "pay", "submit", "confirm", "cancel", "logout", "log out", "sign out", "archive"];
   if (destructive.some((word) => label === word || label.startsWith(word + " ") || label.endsWith(" " + word))) return false;
