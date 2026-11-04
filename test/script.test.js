@@ -355,6 +355,18 @@ test("rejects invalid page numbers and respects prompt cancellation",()=>{
   assert.equal(loaded,null);
 });
 
+test("matches site rules for canonical trailing-dot hostnames",()=>{
+  const {context}=load();
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?JSON.stringify({
+    "example.test":{nextSelector:"a.next"},
+    "*.sub.test":{previousSelector:"a.previous"}
+  }):fallback;
+  const exact=vm.runInContext("getSiteRule('https://example.test./page/1')",context);
+  const wildcard=vm.runInContext("getSiteRule('https://shop.sub.test./page/1')",context);
+  assert.equal(exact.nextSelector,"a.next");
+  assert.equal(wildcard.previousSelector,"a.previous");
+});
+
 test("loads exact and wildcard site rules with bounded thresholds",()=>{
   const {context}=load();
   context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?JSON.stringify({

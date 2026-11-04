@@ -874,7 +874,7 @@ function getSiteRule(url) {
     if (!raw || raw.length > 8192) return null;
     const rules = JSON.parse(raw);
     if (!rules || typeof rules !== "object" || Array.isArray(rules)) return null;
-    const hostname = new URL(url).hostname.toLowerCase();
+    const hostname = new URL(url).hostname.toLowerCase().replace(/\.$/, "");
     const entries = Object.entries(rules).filter(([pattern]) => {
       const host = String(pattern).toLowerCase();
       return host.startsWith("*.") ? hostname.endsWith("." + host.slice(2)) : hostname === host;
