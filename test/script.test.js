@@ -959,7 +959,7 @@ test("records site-rule detection methods without copying control labels",()=>{
 test("reports site-rule selector misses without exposing page data",()=>{
   const {context}=load();
   context.Services.prefs.getBoolPref=()=>true;
-  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?JSON.stringify({"example.test":{nextSelector:".missing-next"}}):fallback;
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?JSON.stringify({"private.example":{nextSelector:".missing-next"}}):fallback;
   const browser={currentURI:{spec:"https://private.example/article?token=secret"},contentDocument:{querySelector:()=>null,querySelectorAll:()=>[]}};
   context.window.gBrowser={selectedTab:{linkedBrowser:browser}};
   vm.runInContext("findPaginationControl(1)",context);
