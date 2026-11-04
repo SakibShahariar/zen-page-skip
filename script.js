@@ -916,6 +916,52 @@ function navigateHashTarget(tab, targetUrl, mode) {
   return true;
 }
 
+const pendingNavigations = new WeakMap();
+const PENDING_NAVIGATION_WINDOW_MS = 10000;
+
+function clearPendingNavigation(browser, pending) {
+  if (pendingNavigations.get(browser) === pending) pendingNavigations.delete(browser);
+  if (pending.listener) {
+    try { browser.removeEventListener("pageshow", pending.listener, true); } catch (error) {}
+  }
+}
+
+function beginPendingNavigation(browser, sourceUrl, targetUrl) {
+  const pending = {
+    source: normalizeNavigationUrl(sourceUrl),
+    target: normalizeNavigationUrl(targetUrl),
+    expiresAt: Date.now() + PENDING_NAVIGATION_WINDOW_MS,
+    listener: null
+  };
+  pendingNavigations.set(browser, pending);
+  if (typeof browser.addEventListener === "function") {
+    pending.listener = () => {
+      const current = normalizeNavigationUrl(browser.currentURI?.spec);
+      if (current && current !== pending.source) clearPendingNavigation(browser, pending);
+    };
+    browser.addEventListener("pageshow", pending.listener, true);
+  }
+  window.setTimeout(() => clearPendingNavigation(browser, pending), PENDING_NAVIGATION_WINDOW_MS);
+  return pending;
+}
+
+function isPendingNavigationCycle(browser, targetUrl) {
+  const pending = pendingNavigations.get(browser);
+  if (!pending) return false;
+  if (pending.expiresAt <= Date.now()) {
+    clearPendingNavigation(browser, pending);
+    return false;
+  }
+  const target = normalizeNavigationUrl(targetUrl);
+  const cycle = Boolean(target && (target === pending.target || target === pending.source));
+  if (cycle) {
+    debugLog("navigation-cycle-rejected", {
+      reason: target === pending.target ? "repeated-pending-target" : "pending-navigation-backtrack"
+    });
+  }
+  return cycle;
+}
+
 let lastNavigationWasHash = false;
 
 function getNavigationCompatibility(tab) {
@@ -948,6 +994,7 @@ function navigate(tab, url) {
     debugLog("navigation-rejected", { reason: "self-navigation" });
     return false;
   }
+  if (browser && isPendingNavigationCycle(browser, normalizedTarget)) return false;
   url = normalizedTarget;
   if (currentUrl && isHashOnlyNavigation(currentUrl, url)) {
     lastNavigationWasHash = true;
@@ -973,8 +1020,14 @@ function navigate(tab, url) {
   const options = { triggeringPrincipal: principal };
   try {
     if (typeof browser.loadURI === "function") {
-      browser.loadURI(Services.io.newURI(url), options);
-      return true;
+      const pending = beginPendingNavigation(browser, currentUrl, url);
+      try {
+        browser.loadURI(Services.io.newURI(url), options);
+        return true;
+      } catch (error) {
+        clearPendingNavigation(browser, pending);
+        throw error;
+      }
     }
   } catch (error) {
     debugLog("loadURI-failed", { message: String(error) });
@@ -982,8 +1035,14 @@ function navigate(tab, url) {
 
   try {
     if (typeof browser.fixupAndLoadURIString === "function") {
-      browser.fixupAndLoadURIString(url, options);
-      return true;
+      const pending = beginPendingNavigation(browser, currentUrl, url);
+      try {
+        browser.fixupAndLoadURIString(url, options);
+        return true;
+      } catch (error) {
+        clearPendingNavigation(browser, pending);
+        throw error;
+      }
     }
   } catch (error) {
     debugLog("fixup-navigation-failed", { message: String(error) });
