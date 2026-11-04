@@ -225,11 +225,11 @@ test("keeps diagnostics disabled by default and exposes opt-in local logs",()=>{
 test("bounds diagnostic history to the most recent 100 entries",()=>{
   const {context}=load();
   context.Services.prefs.getBoolPref=()=>true;
-  vm.runInContext("for(let i=0;i<105;i++) debugLog('entry',{i})",context);
+  vm.runInContext("for(let i=0;i<105;i++) debugLog('entry',{score:i})",context);
   const result=vm.runInContext("getDiagnostics()",context);
   assert.equal(result.split("\n").length,100);
-  assert.equal(result.includes('"i":0'),false);
-  assert.equal(result.includes('"i":104'),true);
+  assert.equal(result.includes('"score":0'),false);
+  assert.equal(result.includes('"score":104'),true);
 });
 
 test("recognizes multilingual labels and user-defined pagination words",()=>{
