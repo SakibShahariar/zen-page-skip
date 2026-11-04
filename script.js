@@ -840,6 +840,17 @@ function navigate(tab, url) {
   const browser = tab?.linkedBrowser;
   lastNavigationWasHash = false;
   const currentUrl = browser?.currentURI?.spec;
+  const normalizedTarget = normalizeNavigationUrl(url, currentUrl);
+  const normalizedCurrent = normalizeNavigationUrl(currentUrl);
+  if (!normalizedTarget) {
+    debugLog("navigation-rejected", { reason: "invalid-or-unsafe-url" });
+    return false;
+  }
+  if (normalizedCurrent && normalizedTarget === normalizedCurrent) {
+    debugLog("navigation-rejected", { reason: "self-navigation" });
+    return false;
+  }
+  url = normalizedTarget;
   if (currentUrl && isHashOnlyNavigation(currentUrl, url)) {
     lastNavigationWasHash = true;
     const mode = getSiteRule(currentUrl)?.hashMode || "verify";
