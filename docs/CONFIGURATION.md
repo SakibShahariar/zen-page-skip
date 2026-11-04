@@ -98,7 +98,13 @@ Export supported settings from the browser console:
 copy(window.zenPageSkipExportSettings())
 ```
 
-Import a previously exported snapshot:
+Preview a snapshot without changing preferences:
+ 
+```js
+window.zenPageSkipPreviewSettings(prompt("Paste Zen Page Skip settings JSON"))
+```
+
+Import a previously exported snapshot. Zen Page Skip shows a confirmation summary before applying validated changes; cancelling leaves preferences untouched:
 
 ```js
 window.zenPageSkipImportSettings(prompt("Paste Zen Page Skip settings JSON"))

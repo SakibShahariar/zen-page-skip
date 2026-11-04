@@ -24,7 +24,7 @@ Persistent repository-specific record of commit-level CI checks and red-cross in
 
 - Repository: `SakibShahariar/zen-page-skip`
 - Default branch: `main`
-- Checkpoint SHA: `9b899fd9cbeeaf51201fdfbd78415b8fbaf3406f`
+- Checkpoint SHA: `ba370f5bbc22785b5e3154330461b3986b264183`
 - Initialized: 2026-11-02
 - Baseline: latest branch tip queried through combined commit-status endpoint; empty status list recorded as **unavailable**, not green/red. Older history was not retroactively audited during setup.
 - Updated: 2026-11-04
@@ -122,3 +122,6 @@ No red result was confirmed from the status data retrieved during setup.
 
 
 | `9b899fd9cbeeaf51201fdfbd78415b8fbaf3406f` | fix: explain invalid site-rule page templates (#46) | green | 2026-11-04 | [41830365401](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41830365401) |
+
+
+| `ba370f5bbc22785b5e3154330461b3986b264183` | test: cover page-template diagnostic reasons (#46) | green | 2026-11-04 | [41830698327](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41830698327) |

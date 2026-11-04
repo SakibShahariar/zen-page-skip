@@ -11,6 +11,7 @@ function load(windowOverrides = {}) {
     console, URL,
     Services: {
       prefs: { getStringPref: (_name, fallback) => fallback },
+      prompt: { confirm: () => true },
       scriptSecurityManager: { getSystemPrincipal: () => ({}) },
       io: { newURI: (value) => value }
     },
@@ -994,4 +995,46 @@ test("reports malformed page-template placeholder counts without exposing URLs",
   assert.equal(diagnostics.includes("custom-page-template-invalid"),true);
   assert.equal(diagnostics.includes("placeholder-count"),true);
   assert.equal(diagnostics.includes("private.example"),false);
+});
+
+
+test("previews setting and site-rule changes without exposing values or writing preferences",()=>{
+  const {context}=load();
+  const currentRules=JSON.stringify({"example.test":{action:"auto"},"old.example":{enabled:false}});
+  context.Services.prefs.prefHasUserValue=()=>true;
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?currentRules:fallback;
+  context.Services.prefs.getBoolPref=(_name,fallback)=>fallback;
+  context.Services.prefs.getIntPref=(_name,fallback)=>fallback;
+  let writes=0;
+  context.Services.prefs.setStringPref=()=>{writes++};
+  const payload=JSON.stringify({schemaVersion:1,settings:{
+    "next-shortcut":"Ctrl+Alt+Right",
+    "site-rules":JSON.stringify({"example.test":{action:"click"},"new.example":{enabled:true}}),
+    "unknown":"ignored"
+  }});
+  const preview=vm.runInContext("previewSettings(payload)",Object.assign(context,{payload}));
+  assert.equal(preview.success,true);
+  assert.deepEqual(JSON.parse(JSON.stringify(preview.changed)),["next-shortcut","site-rules"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(preview.siteRules.added)),["new.example"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(preview.siteRules.changed)),["example.test"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(preview.siteRules.removed)),["old.example"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(preview.ignored)),["unknown"]);
+  assert.equal(JSON.stringify(preview).includes("Ctrl+Alt+Right"),false);
+  assert.equal(writes,0);
+});
+
+test("requires import confirmation and leaves preferences unchanged when cancelled",()=>{
+  const {context}=load();
+  let writes=0, promptText="";
+  context.Services.prefs.prefHasUserValue=()=>true;
+  context.Services.prefs.getStringPref=(_name,fallback)=>fallback;
+  context.Services.prefs.setStringPref=()=>{writes++};
+  context.Services.prompt.confirm=(_window,_title,message)=>{promptText=message;return false};
+  const payload=JSON.stringify({schemaVersion:1,settings:{"next-shortcut":"Ctrl+Alt+Right"}});
+  const result=vm.runInContext("importSettings(payload)",Object.assign(context,{payload}));
+  assert.equal(result.success,false);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.rejected)),["cancelled"]);
+  assert.equal(writes,0);
+  assert.equal(promptText.includes("next-shortcut"),true);
+  assert.equal(promptText.includes("Ctrl+Alt+Right"),false);
 });

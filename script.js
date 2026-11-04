@@ -367,7 +367,107 @@ function validateImportedSetting(name, value, schema) {
   return { valid: true, value };
 }
 
+function previewSettings(input) {
+  if (typeof input !== "string" || input.length > 65536) {
+    return { success: false, added: [], changed: [], unchanged: [], ignored: [], rejected: ["input"] };
+  }
+  let payload;
+  try {
+    payload = JSON.parse(input);
+  } catch (error) {
+    return { success: false, added: [], changed: [], unchanged: [], ignored: [], rejected: ["invalid JSON"] };
+  }
+  if (!payload || payload.schemaVersion !== 1 || !payload.settings ||
+      typeof payload.settings !== "object" || Array.isArray(payload.settings)) {
+    return { success: false, added: [], changed: [], unchanged: [], ignored: [], rejected: ["unsupported schema"] };
+  }
+
+  const staged = [];
+  const rejected = [];
+  const ignored = [];
+  for (const [name, value] of Object.entries(payload.settings)) {
+    const schema = SETTINGS_SCHEMA[name];
+    if (!schema) {
+      ignored.push(name);
+      continue;
+    }
+    const validated = validateImportedSetting(name, value, schema);
+    if (!validated.valid) rejected.push(name);
+    else staged.push({ name, schema, value: validated.value });
+  }
+  if (rejected.length) return { success: false, added: [], changed: [], unchanged: [], ignored, rejected };
+
+  const added = [];
+  const changed = [];
+  const unchanged = [];
+  let currentRules = {};
+  let incomingRules = {};
+  try {
+    for (const item of staged) {
+      const key = PREF_BRANCH + item.name;
+      const hadUserValue = typeof Services.prefs.prefHasUserValue === "function"
+        ? Services.prefs.prefHasUserValue(key)
+        : true;
+      const currentValue = readSetting(item.name, item.schema);
+      if (!hadUserValue) added.push(item.name);
+      else if (currentValue === item.value) unchanged.push(item.name);
+      else changed.push(item.name);
+
+      if (item.name === "site-rules") {
+        try { currentRules = currentValue ? JSON.parse(currentValue) : {}; } catch (error) { currentRules = {}; }
+        try { incomingRules = item.value ? JSON.parse(item.value) : {}; } catch (error) { incomingRules = {}; }
+      }
+    }
+  } catch (error) {
+    return { success: false, added: [], changed: [], unchanged: [], ignored, rejected: ["preferences-unavailable"] };
+  }
+
+  const newRules = [];
+  const changedRules = [];
+  const unchangedRules = [];
+  const removedRules = [];
+  for (const [host, rule] of Object.entries(incomingRules)) {
+    if (!Object.prototype.hasOwnProperty.call(currentRules, host)) newRules.push(host);
+    else if (JSON.stringify(currentRules[host]) === JSON.stringify(rule)) unchangedRules.push(host);
+    else changedRules.push(host);
+  }
+  for (const host of Object.keys(currentRules)) {
+    if (!Object.prototype.hasOwnProperty.call(incomingRules, host)) removedRules.push(host);
+  }
+
+  return {
+    success: true, added, changed, unchanged, ignored, rejected: [],
+    siteRules: { added: newRules, changed: changedRules, unchanged: unchangedRules, removed: removedRules }
+  };
+}
+
 function importSettings(input) {
+  const preview = previewSettings(input);
+  if (!preview.success) {
+    return { success: false, imported: [], rejected: preview.rejected, ignored: preview.ignored };
+  }
+  if (typeof Services.prompt?.confirm !== "function") {
+    return { success: false, imported: [], rejected: ["confirmation-unavailable"], ignored: preview.ignored };
+  }
+  const summary = [
+    "Review the settings import before applying it:",
+    "New preferences: " + (preview.added.join(", ") || "none"),
+    "Changed preferences: " + (preview.changed.join(", ") || "none"),
+    "Unchanged preferences: " + (preview.unchanged.join(", ") || "none"),
+    "New site rules: " + (preview.siteRules?.added.join(", ") || "none"),
+    "Changed site rules: " + (preview.siteRules?.changed.join(", ") || "none"),
+    "Removed site rules: " + (preview.siteRules?.removed.join(", ") || "none"),
+    "Ignored unknown settings: " + (preview.ignored.join(", ") || "none")
+  ].join("\\n");
+  let confirmed = false;
+  try {
+    confirmed = Services.prompt.confirm(window, "Zen Page Skip", summary);
+  } catch (error) {
+    debugLog("settings-import-confirmation-failed", { errorName: error?.name || "Error" });
+    return { success: false, imported: [], rejected: ["confirmation-unavailable"], ignored: preview.ignored };
+  }
+  if (!confirmed) return { success: false, imported: [], rejected: ["cancelled"], ignored: preview.ignored };
+
   if (typeof input !== "string" || input.length > 65536) {
     return { success: false, imported: [], rejected: ["input"], ignored: [] };
   }
@@ -449,9 +549,11 @@ function importSettings(input) {
 
 window.zenPageSkipExportSettings = exportSettings;
 window.zenPageSkipImportSettings = importSettings;
+window.zenPageSkipPreviewSettings = previewSettings;
 window.addEventListener("unload", () => {
   if (window.zenPageSkipExportSettings === exportSettings) delete window.zenPageSkipExportSettings;
   if (window.zenPageSkipImportSettings === importSettings) delete window.zenPageSkipImportSettings;
+  if (window.zenPageSkipPreviewSettings === previewSettings) delete window.zenPageSkipPreviewSettings;
 }, { once: true });
 
 function getDebugEnabled() {
