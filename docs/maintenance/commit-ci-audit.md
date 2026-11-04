@@ -138,3 +138,7 @@ No red result was confirmed from the status data retrieved during setup.
 
 
 | `abffb4e36e6059ae00ecfb67fe696ce5967b3161` | feat: add a current-site pagination toggle (#45) | green | 2026-11-04 | [41831819940](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41831819940) |
+
+
+| `abffb4e36e6059ae00ecfb67fe696ce5967b3161` | feat: add a current-site pagination toggle (#45) | green | 2026-11-04 | [41831819940](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41831819940) |
+| `bc47edc89a8982974ac81680ddec38c6bab8f44b` | feat: add per-tab pagination pause (#32) | green | 2026-11-04 | [41832093828](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41832093828) |

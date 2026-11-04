@@ -21,8 +21,10 @@ Zen Page Skip is a Sine mod for Zen Browser. It provides shortcuts to move betwe
 | Next page | `Alt + ]` |
 | Previous page | `Alt + [` |
 | Jump to page | `Alt + Shift + P` |
+| Toggle current site | `Alt + Shift + D` |
+| Toggle current tab pause | `Alt + Shift + X` |
 
-Change shortcuts in **Settings → Sine Mods → Zen Page Skip**. Advanced shortcut syntax and configuration are covered in the [configuration guide](docs/CONFIGURATION.md).
+Change or disable individual shortcuts in **Settings → Sine Mods → Zen Page Skip**. Site pause is saved per hostname; tab pause lasts until resumed or the tab is closed. Advanced shortcut syntax and configuration are covered in the [configuration guide](docs/CONFIGURATION.md).
 
 ## Features
 
@@ -30,6 +32,7 @@ Change shortcuts in **Settings → Sine Mods → Zen Page Skip**. Advanced short
 - Supports numbered URL patterns such as `?page=3`, `/page/3/`, and `#page=3`.
 - Offers per-site selectors, labels, URL templates, and behavior rules.
 - Handles updated single-page-app routes and browser-history navigation.
+- Provides per-site and per-tab pause controls.
 - Applies safety checks to avoid unrelated, disabled, or destructive controls.
 - Provides optional local diagnostics and navigation feedback.
 - Recognizes common pagination labels in multiple languages.
