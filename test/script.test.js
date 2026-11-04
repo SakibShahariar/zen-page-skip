@@ -723,3 +723,30 @@ test("rejects malformed site-rule JSON in an imported settings snapshot",()=>{
   assert.deepEqual(JSON.parse(JSON.stringify(result.rejected)),["site-rules"]);
   assert.equal(writes,0);
 });
+
+
+test("rolls back earlier preference writes when a later import write fails",()=>{
+  const {context}=load();
+  const stored={
+    "zen-page-skip.next-shortcut":"Alt+]",
+    "zen-page-skip.toast-enabled":true
+  };
+  context.Services.prefs.prefHasUserValue=()=>true;
+  context.Services.prefs.getStringPref=(name,fallback)=>stored[name] ?? fallback;
+  context.Services.prefs.getBoolPref=(name,fallback)=>stored[name] ?? fallback;
+  context.Services.prefs.setStringPref=(name,value)=>{stored[name]=value};
+  context.Services.prefs.setBoolPref=(name,value)=>{
+    if(name.endsWith("toast-enabled")&&value===false) throw Error("preference is locked");
+    stored[name]=value;
+  };
+  const payload=JSON.stringify({schemaVersion:1,settings:{
+    "next-shortcut":"Ctrl+Alt+Right",
+    "toast-enabled":false
+  }});
+  const result=vm.runInContext("importSettings(payload)",Object.assign(context,{payload}));
+  assert.equal(result.success,false);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.imported)),[]);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.rejected)),["toast-enabled"]);
+  assert.equal(stored["zen-page-skip.next-shortcut"],"Alt+]");
+  assert.equal(stored["zen-page-skip.toast-enabled"],true);
+});
