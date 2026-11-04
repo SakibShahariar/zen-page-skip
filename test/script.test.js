@@ -824,7 +824,7 @@ test("validates imported site-rule selectors and same-origin page templates",()=
     JSON.stringify({"-example.test":{enabled:true}}),
     JSON.stringify({"example-.test":{enabled:true}}),
     JSON.stringify({"example..test":{enabled:true}}),
-    JSON.stringify({"a".repeat(64)+".test":{enabled:true}}),
+    JSON.stringify({["a".repeat(64)+".test"]:{enabled:true}}),
     JSON.stringify({"example.test":{nextSelector:"["}}),
     JSON.stringify({"example.test":{pageTemplate:"https://evil.test/page/{page}"}}),
     JSON.stringify({"example.test":{action:"execute"}}),
