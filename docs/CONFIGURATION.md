@@ -136,6 +136,15 @@ Copy the local diagnostic buffer:
 copy(window.zenPageSkipGetDiagnostics())
 ```
 
+Inspect the next or previous pagination target without activating it:
+
+```js
+window.zenPageSkipExplainPagination(1)  // next
+window.zenPageSkipExplainPagination(-1) // previous
+```
+
+The explainer returns the detection method, matched per-site rule summary, exact local destination (when available), and rejection reason. It does not click, scroll, navigate, or transmit anything. Treat the returned target as private if you share the console output.
+
 Generate a privacy-filtered troubleshooting report and copy it explicitly:
 
 ```js

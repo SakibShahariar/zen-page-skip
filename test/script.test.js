@@ -1213,3 +1213,45 @@ test("documents intended host compatibility separately from live verification",(
   assert.equal(matrix.includes("No minimum supported Zen Browser or Sine version"),true);
   assert.equal(readme.includes("docs/COMPATIBILITY.md"),true);
 });
+
+
+test("explains the exact rel-pagination destination without navigating",()=>{
+  const {context}=load();
+  const rel=el({text:"",attrs:{href:"../page/2?sort=recent#top",rel:"next"}});
+  const document={querySelectorAll:(selector)=>selector==="link[rel]"?[rel]:[]};
+  const browser={currentURI:{spec:"https://example.test/archive/page/1"},contentDocument:document};
+  context.window.gBrowser={selectedTab:{linkedBrowser:browser}};
+  const result=vm.runInContext("explainPagination(1)",context);
+  assert.equal(result.success,true);
+  assert.equal(result.method,"document-rel");
+  assert.equal(result.target,"https://example.test/page/2?sort=recent#top");
+  assert.equal(result.action,"navigate");
+  assert.equal(browser.currentURI.spec,"https://example.test/archive/page/1");
+});
+
+test("explains a matched per-site selector and its exact destination",()=>{
+  const {context}=load();
+  const next=el({text:"Next",attrs:{href:"/chapter/2"},pagination:true});
+  const document={querySelector:(selector)=>selector==="a.next"?next:null,querySelectorAll:()=>[next]};
+  const browser={currentURI:{spec:"https://private.example/chapter/1"},contentDocument:document};
+  context.window.gBrowser={selectedTab:{linkedBrowser:browser}};
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?JSON.stringify({"*.example":{nextSelector:"a.next",action:"auto",confidenceThreshold:85}}):fallback;
+  const result=vm.runInContext("explainPagination(1)",context);
+  assert.equal(result.success,true);
+  assert.equal(result.method,"site-selector");
+  assert.equal(result.target,"https://private.example/chapter/2");
+  assert.equal(result.matchedRule.pattern,"*.example");
+  assert.equal(result.matchedRule.selector,"a.next");
+});
+
+test("explainer reports disabled sites and invalid directions without side effects",()=>{
+  const {context}=load();
+  const browser={currentURI:{spec:"https://example.test/page/1"},contentDocument:{querySelectorAll:()=>[]}};
+  context.window.gBrowser={selectedTab:{linkedBrowser:browser}};
+  const invalid=vm.runInContext("explainPagination(0)",context);
+  assert.equal(invalid.reason,"invalid-direction");
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("disabled-sites")?"example.test":fallback;
+  const disabled=vm.runInContext("explainPagination(1)",context);
+  assert.equal(disabled.reason,"site-disabled");
+  assert.equal(browser.currentURI.spec,"https://example.test/page/1");
+});

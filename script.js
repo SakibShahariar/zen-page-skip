@@ -649,6 +649,7 @@ window.zenPageSkipCreateTroubleshootingReport = createTroubleshootingReport;
 window.addEventListener("unload", () => {
   if (window.zenPageSkipGetDiagnostics === getDiagnostics) delete window.zenPageSkipGetDiagnostics;
   if (window.zenPageSkipCreateTroubleshootingReport === createTroubleshootingReport) delete window.zenPageSkipCreateTroubleshootingReport;
+  if (window.zenPageSkipExplainPagination === explainPagination) delete window.zenPageSkipExplainPagination;
 }, { once: true });
 
 function getPaginationWords(direction) {
@@ -1479,6 +1480,99 @@ function jumpInternal(direction) {
   debugLog("navigation-aborted", { reason: "no-pagination-target" });
   showToast(direction === 1 ? "No next page found" : "No previous page found");
 }
+
+function getMatchedSiteRulePattern(url) {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase().replace(/\\.$/, "");
+    const raw = Services.prefs.getStringPref(PREF_BRANCH + "site-rules", "");
+    if (!raw || raw.length > 8192) return null;
+    const rules = JSON.parse(raw);
+    if (!rules || typeof rules !== "object" || Array.isArray(rules)) return null;
+    return Object.keys(rules).filter((pattern) => {
+      const host = pattern.toLowerCase().replace(/\\.$/, "");
+      return host.startsWith("*.") ? hostname !== host.slice(2) && hostname.endsWith("." + host.slice(2)) : hostname === host;
+    }).sort((a, b) => b.length - a.length)[0] || null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function explainPagination(direction = 1) {
+  if (direction !== 1 && direction !== -1) {
+    return { success: false, direction: null, method: null, target: null, reason: "invalid-direction", matchedRule: null };
+  }
+  const tab = getActiveTab();
+  const url = getCurrentUrl();
+  const normalizedUrl = normalizeNavigationUrl(url);
+  const directionName = direction === 1 ? "next" : "previous";
+  if (!tab || !normalizedUrl) {
+    return { success: false, direction: directionName, method: null, target: null, reason: "no-active-page", matchedRule: null };
+  }
+  if (isSiteDisabled(normalizedUrl)) {
+    return { success: false, direction: directionName, method: null, target: null, reason: "site-disabled", matchedRule: null };
+  }
+
+  const siteRule = getSiteRule(normalizedUrl);
+  if (siteRule?.enabled === false) {
+    return { success: false, direction: directionName, method: null, target: null, reason: "site-rule-disabled", matchedRule: { pattern: getMatchedSiteRulePattern(normalizedUrl) } };
+  }
+  const selector = direction === 1 ? siteRule?.nextSelector : siteRule?.previousSelector;
+  const words = direction === 1 ? siteRule?.nextWords : siteRule?.previousWords;
+  const matchedRule = siteRule ? {
+    pattern: getMatchedSiteRulePattern(normalizedUrl),
+    action: siteRule.action,
+    selector: selector || null,
+    customWordCount: words?.length || 0,
+    confidenceThreshold: siteRule.confidenceThreshold,
+    hashMode: siteRule.hashMode
+  } : null;
+  const document = getPageDocument();
+
+  if (document) {
+    const relUrl = findRelPaginationUrl(direction, document, normalizedUrl);
+    if (relUrl) return { success: true, direction: directionName, method: "document-rel", target: relUrl, action: "navigate", hashOnly: isHashOnlyNavigation(normalizedUrl, relUrl), reason: null, matchedRule };
+  }
+
+  if (document && shouldSkipInfiniteScroll(document, siteRule)) {
+    return { success: false, direction: directionName, method: null, target: null, reason: "infinite-scroll-page", matchedRule };
+  }
+
+  const action = siteRule?.action || "auto";
+  const control = action === "url" ? null : findPaginationControl(direction);
+  if (control) {
+    const href = control.getAttribute("href");
+    const target = href ? normalizeNavigationUrl(href, normalizedUrl) : null;
+    if (href && !target) {
+      return { success: false, direction: directionName, method: null, target: null, reason: "unsafe-control-target", matchedRule };
+    }
+    let method = "automatic-control";
+    if (selector && document) {
+      try {
+        if (document.querySelector(selector) === control) method = "site-selector";
+      } catch (error) {}
+    }
+    const hashOnly = target ? isHashOnlyNavigation(normalizedUrl, target) : false;
+    if (hashOnly && siteRule?.hashMode === "disable") {
+      return { success: false, direction: directionName, method, target, action: "click", hashOnly, reason: "hash-pagination-disabled", matchedRule };
+    }
+    return { success: true, direction: directionName, method, target, action: "click", hashOnly, reason: null, matchedRule };
+  }
+
+  if (action === "click") {
+    return { success: false, direction: directionName, method: "site-rule-click", target: null, action: "click", reason: "configured-control-not-found", matchedRule };
+  }
+  const nextUrl = getNumberedPageUrl(normalizedUrl, direction);
+  if (!nextUrl) {
+    return { success: false, direction: directionName, method: null, target: null, reason: "no-pagination-target", matchedRule };
+  }
+  const validation = validateNumberedFallback(normalizedUrl, nextUrl, document);
+  if (!validation.valid) {
+    return { success: false, direction: directionName, method: "numbered-url", target: null, reason: validation.reason || "numbered-url-rejected", matchedRule };
+  }
+  return { success: true, direction: directionName, method: "numbered-url", target: nextUrl, action: "navigate", hashOnly: isHashOnlyNavigation(normalizedUrl, nextUrl), reason: null, matchedRule };
+}
+
+window.zenPageSkipExplainPagination = explainPagination;
 
 function toggleCurrentSite() {
   const url = getCurrentUrl();
