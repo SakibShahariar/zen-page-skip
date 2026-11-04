@@ -954,3 +954,18 @@ test("records site-rule detection methods without copying control labels",()=>{
   assert.equal(diagnostics.includes("site-selector"),true);
   assert.equal(diagnostics.includes("Private button text"),false);
 });
+
+
+test("reports site-rule selector misses without exposing page data",()=>{
+  const {context}=load();
+  context.Services.prefs.getBoolPref=()=>true;
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?JSON.stringify({"example.test":{nextSelector:".missing-next"}}):fallback;
+  const browser={currentURI:{spec:"https://private.example/article?token=secret"},contentDocument:{querySelector:()=>null,querySelectorAll:()=>[]}};
+  context.window.gBrowser={selectedTab:{linkedBrowser:browser}};
+  vm.runInContext("findPaginationControl(1)",context);
+  const diagnostics=vm.runInContext("getDiagnostics()",context);
+  assert.equal(diagnostics.includes("site-selector-not-found"),true);
+  assert.equal(diagnostics.includes("no-match"),true);
+  assert.equal(diagnostics.includes("private.example"),false);
+  assert.equal(diagnostics.includes("secret"),false);
+});

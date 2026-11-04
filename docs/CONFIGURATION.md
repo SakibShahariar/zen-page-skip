@@ -128,7 +128,7 @@ Copy it with:
 copy(window.zenPageSkipGetDiagnostics())
 ```
 
-Diagnostics are off by default. The mod does not send telemetry or diagnostic data to a server.
+Diagnostics are off by default. Rule authors can inspect selector outcomes such as selected, not found, rejected, or syntactically invalid, alongside generic candidate rejection reasons. The mod does not send telemetry or diagnostic data to a server.
 
 ## Compatibility and limitations
 

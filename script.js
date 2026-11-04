@@ -783,9 +783,15 @@ function findPaginationControl(direction) {
   if (selector) {
     try {
       const custom = document.querySelector(selector);
-      if (custom && isSafeNavigationControl(custom, true) && !isExcludedByUserSelector(custom, document)) {
-        debugLog("site-selector-selected", { method: "site-selector" });
-        return custom;
+      if (!custom) {
+        debugLog("site-selector-not-found", { reason: "no-match" });
+      } else {
+        const excluded = isExcludedByUserSelector(custom, document);
+        if (isSafeNavigationControl(custom, true) && !excluded) {
+          debugLog("site-selector-selected", { method: "site-selector" });
+          return custom;
+        }
+        debugLog("site-selector-rejected", { reason: excluded ? "user-excluded-selector" : "unsafe-control" });
       }
     } catch (error) {
       debugLog("site-selector-invalid", {});

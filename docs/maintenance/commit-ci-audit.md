@@ -24,7 +24,7 @@ Persistent repository-specific record of commit-level CI checks and red-cross in
 
 - Repository: `SakibShahariar/zen-page-skip`
 - Default branch: `main`
-- Checkpoint SHA: `132f4e69b388a620d12a59f85b4937d8242d94b9`
+- Checkpoint SHA: `424289d8134ad3a97506d27cca65893c91c0c303`
 - Initialized: 2026-11-02
 - Baseline: latest branch tip queried through combined commit-status endpoint; empty status list recorded as **unavailable**, not green/red. Older history was not retroactively audited during setup.
 - Updated: 2026-11-04
@@ -107,3 +107,9 @@ No red result was confirmed from the status data retrieved during setup.
 
 
 | `132f4e69b388a620d12a59f85b4937d8242d94b9` | test: cover pagination controls added after load (#37) | green | 2026-11-04 | [41829292384](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41829292384) |
+
+
+| `759ddc94fd01881bc667cf6c93a9f51b7a52da94` | fix: keep pagination diagnostics privacy-safe (#46) | red | 2026-11-04 | [41829602099](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41829602099) |
+| `424289d8134ad3a97506d27cca65893c91c0c303` | test: align diagnostic history test with privacy filter (#46) | green | 2026-11-04 | [41829739054](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41829739054) |
+
+- `759ddc94fd01881bc667cf6c93a9f51b7a52da94`: the diagnostics privacy filter intentionally removed arbitrary detail keys, so the existing bounded-history test's custom `i` field was no longer recorded. Updated the test to use the allowlisted numeric `score` field in `424289d8134ad3a97506d27cca65893c91c0c303`; rerun passed.
