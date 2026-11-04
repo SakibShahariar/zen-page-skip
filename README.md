@@ -41,10 +41,8 @@ The mod avoids guessing when it cannot find a safe navigation target.
 
 ## Compatibility
 
-- Designed for Zen Browser with Sine.
-- Other Firefox-based browsers may work, but are not runtime-verified.
-- Custom or inaccessible pagination controls may not be detectable.
-- Infinite-scroll feeds are not treated as numbered pagination by default.
+Zen Browser with Sine is the intended host. Browser/Sine version support and live-site coverage are tracked in the [compatibility matrix](docs/COMPATIBILITY.md); no unverified version or website is presented as tested.
+
 
 ## Development
 

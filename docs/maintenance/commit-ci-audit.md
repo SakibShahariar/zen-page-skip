@@ -148,3 +148,7 @@ No red result was confirmed from the status data retrieved during setup.
 
 
 | `a97551c3afc384d5d404c6f6d8d5ea59094d92f7` | feat: add privacy-safe troubleshooting reports (#36) | green | 2026-11-04 | [41832615755](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41832615755) |
+
+
+| `a97551c3afc384d5d404c6f6d8d5ea59094d92f7` | feat: add privacy-safe troubleshooting reports (#36) | green | 2026-11-04 | [41832615755](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41832615755) |
+| `9ace0a893f19c179fbfd4772a46f514b6a825de2` | docs: fix troubleshooting report instructions (#36) | green | 2026-11-04 | [41832824311](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41832824311) |
