@@ -319,20 +319,54 @@ function importSettings(input) {
   }
   if (rejected.length) return { success: false, imported: [], rejected, ignored };
 
-  const imported = [];
-  for (const item of staged) {
-    try {
+  const snapshots = [];
+  try {
+    for (const item of staged) {
       const key = PREF_BRANCH + item.name;
+      snapshots.push({
+        item,
+        hadUserValue: typeof Services.prefs.prefHasUserValue === "function"
+          ? Services.prefs.prefHasUserValue(key)
+          : true,
+        value: readSetting(item.name, item.schema)
+      });
+    }
+  } catch (error) {
+    return { success: false, imported: [], rejected: ["preferences-unavailable"], ignored };
+  }
+
+  const imported = [];
+  for (let index = 0; index < staged.length; index++) {
+    const item = staged[index];
+    const key = PREF_BRANCH + item.name;
+    try {
       if (item.schema.type === "boolean") Services.prefs.setBoolPref(key, item.value);
       else if (item.schema.type === "integer") Services.prefs.setIntPref(key, item.value);
       else Services.prefs.setStringPref(key, item.value);
       imported.push(item.name);
     } catch (error) {
       rejected.push(item.name);
-      break;
+      const rollback = snapshots.slice(0, index + 1).reverse();
+      for (const snapshot of rollback) {
+        const restoreKey = PREF_BRANCH + snapshot.item.name;
+        try {
+          if (!snapshot.hadUserValue && typeof Services.prefs.clearUserPref === "function") {
+            Services.prefs.clearUserPref(restoreKey);
+          } else if (snapshot.item.schema.type === "boolean") {
+            Services.prefs.setBoolPref(restoreKey, snapshot.value);
+          } else if (snapshot.item.schema.type === "integer") {
+            Services.prefs.setIntPref(restoreKey, snapshot.value);
+          } else {
+            Services.prefs.setStringPref(restoreKey, snapshot.value);
+          }
+        } catch (rollbackError) {
+          rejected.push("rollback:" + snapshot.item.name);
+        }
+      }
+      return { success: false, imported: [], rejected, ignored };
     }
   }
-  return { success: rejected.length === 0, imported, rejected, ignored };
+  return { success: true, imported, rejected, ignored };
 }
 
 window.zenPageSkipExportSettings = exportSettings;
