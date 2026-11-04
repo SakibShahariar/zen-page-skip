@@ -791,3 +791,43 @@ test("validates imported site-rule selectors and same-origin page templates",()=
   }
   assert.equal(writes,1);
 });
+
+
+test("blocks repeated pending destinations and backtracks in a navigation cycle",()=>{
+  const {context}=load();
+  let loads=0;
+  const browser={
+    currentURI:{spec:"https://example.test/page/1"},
+    loadURI(){loads++},
+    addEventListener(){},
+    removeEventListener(){}
+  };
+  const tab={linkedBrowser:browser};
+  context.Services.scriptSecurityManager.getSystemPrincipal=()=>({});
+  context.Services.io.newURI=(value)=>value;
+  const first=vm.runInContext("navigate(tab,'https://example.test/page/2')",Object.assign(context,{tab}));
+  const repeated=vm.runInContext("navigate(tab,'https://example.test/page/2')",context);
+  browser.currentURI.spec="https://example.test/page/2";
+  const backtrack=vm.runInContext("navigate(tab,'https://example.test/page/1')",context);
+  assert.deepEqual([first,repeated,backtrack,loads],[true,false,false,1]);
+});
+
+test("clears the pending cycle guard after the destination page is shown",()=>{
+  const {context}=load();
+  let loads=0;
+  const listeners={};
+  const browser={
+    currentURI:{spec:"https://example.test/page/1"},
+    loadURI(){loads++},
+    addEventListener:(name,callback)=>{listeners[name]=callback},
+    removeEventListener:(name)=>{delete listeners[name]}
+  };
+  const tab={linkedBrowser:browser};
+  context.Services.scriptSecurityManager.getSystemPrincipal=()=>({});
+  context.Services.io.newURI=(value)=>value;
+  assert.equal(vm.runInContext("navigate(tab,'https://example.test/page/2')",Object.assign(context,{tab})),true);
+  browser.currentURI.spec="https://example.test/page/2";
+  listeners.pageshow();
+  assert.equal(vm.runInContext("navigate(tab,'https://example.test/page/1')",context),true);
+  assert.equal(loads,2);
+});
