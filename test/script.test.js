@@ -931,3 +931,26 @@ test("detects pagination controls inserted or replaced after the initial page lo
   controls=[replacement];
   assert.equal(vm.runInContext("findPaginationControl(1)",context),replacement);
 });
+
+
+test("keeps page labels, URLs, hostnames, and error messages out of diagnostics",()=>{
+  const {context}=load();
+  context.Services.prefs.getBoolPref=()=>true;
+  vm.runInContext("debugLog('candidate-scored',{label:'Private article title',target:'https://example.test/page?token=secret',host:'private.example',message:'sensitive page detail',tag:'A',score:95,threshold:70,accepted:true})",context);
+  const diagnostics=vm.runInContext("getDiagnostics()",context);
+  assert.equal(diagnostics.includes("Private article title"),false);
+  assert.equal(diagnostics.includes("example.test"),false);
+  assert.equal(diagnostics.includes("secret"),false);
+  assert.equal(diagnostics.includes("sensitive page detail"),false);
+  assert.equal(diagnostics.includes('"score":95'),true);
+  assert.equal(diagnostics.includes('"accepted":true'),true);
+});
+
+test("records site-rule detection methods without copying control labels",()=>{
+  const {context}=load();
+  context.Services.prefs.getBoolPref=()=>true;
+  vm.runInContext("debugLog('site-selector-selected',{method:'site-selector',label:'Private button text'})",context);
+  const diagnostics=vm.runInContext("getDiagnostics()",context);
+  assert.equal(diagnostics.includes("site-selector"),true);
+  assert.equal(diagnostics.includes("Private button text"),false);
+});

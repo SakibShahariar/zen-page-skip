@@ -120,7 +120,7 @@ For each action, the mod reads the selected tab's current URL and document. This
 
 ## Local diagnostics
 
-Enable `zen-page-skip.debug-mode` to log candidate scores, rejection reasons, and navigation decisions in the browser console. The diagnostic buffer is kept in memory and limited to the latest 100 entries.
+Enable `zen-page-skip.debug-mode` to log candidate scores, rejection reasons, and navigation decisions in the browser console. The diagnostic buffer is kept in memory and limited to the latest 100 entries. Diagnostics include generic rule/method names, control tags, scores, and rejection reasons, but omit page labels, page text, hostnames, URLs, query parameters, fragments, and raw error messages.
 
 Copy it with:
 

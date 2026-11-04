@@ -453,12 +453,44 @@ function getDebugEnabled() {
 }
 
 const diagnosticEntries = [];
+function sanitizeDiagnosticDetails(details) {
+  const allowed = new Set([
+    "reason", "direction", "tag", "score", "threshold", "accepted",
+    "missing", "observedPages", "method", "valid", "errorName"
+  ]);
+  const safe = {};
+  try {
+    for (const [key, value] of Object.entries(details || {})) {
+      if (!allowed.has(key)) continue;
+      if (key === "missing" && Array.isArray(value)) {
+        safe[key] = value.filter((item) => typeof item === "string").slice(0, 8);
+      } else if (key === "observedPages" && Array.isArray(value)) {
+        safe[key] = value.filter((item) => Number.isSafeInteger(item)).slice(0, 20);
+      } else if (typeof value === "string" && value.length <= 64) {
+        safe[key] = value;
+      } else if (typeof value === "number" && Number.isFinite(value)) {
+        safe[key] = value;
+      } else if (typeof value === "boolean") {
+        safe[key] = value;
+      }
+    }
+  } catch (error) {
+    return {};
+  }
+  return safe;
+}
+
 function debugLog(event, details = {}) {
   if (!getDebugEnabled()) return;
-  const entry = `${Date.now()} ${event} ${JSON.stringify(details)}`;
-  diagnosticEntries.push(entry);
-  if (diagnosticEntries.length > 100) diagnosticEntries.shift();
-  console.debug("[Zen Page Skip]", entry);
+  try {
+    const safeDetails = sanitizeDiagnosticDetails(details);
+    const entry = `${Date.now()} ${event} ${JSON.stringify(safeDetails)}`;
+    diagnosticEntries.push(entry);
+    if (diagnosticEntries.length > 100) diagnosticEntries.shift();
+    console.debug("[Zen Page Skip]", entry);
+  } catch (error) {
+    // Diagnostics must never interfere with pagination.
+  }
 }
 
 function getDiagnostics() {
@@ -507,7 +539,7 @@ function describeControlTarget(href, currentUrl, label) {
   try {
     return describeNavigationTarget(new URL(href, currentUrl).href, label);
   } catch (error) {
-    debugLog("invalid-control-target", { label });
+    debugLog("invalid-control-target", {});
     return label;
   }
 }
@@ -528,10 +560,10 @@ function confirmNavigation(description) {
       return false;
     }
     const confirmed = Services.prompt.confirm(window, "Zen Page Skip", `Navigate to ${description}?`);
-    if (!confirmed) debugLog("navigation-cancelled", { target: description });
+    if (!confirmed) debugLog("navigation-cancelled", { reason: "user-cancelled" });
     return confirmed;
   } catch (error) {
-    debugLog("preview-unavailable", { message: String(error) });
+    debugLog("preview-unavailable", { errorName: error?.name || "Error" });
     return false;
   }
 }
@@ -752,7 +784,7 @@ function findPaginationControl(direction) {
     try {
       const custom = document.querySelector(selector);
       if (custom && isSafeNavigationControl(custom, true) && !isExcludedByUserSelector(custom, document)) {
-        debugLog("site-selector-selected", { label: normalizedText(custom) });
+        debugLog("site-selector-selected", { method: "site-selector" });
         return custom;
       }
     } catch (error) {
@@ -769,11 +801,11 @@ function findPaginationControl(direction) {
   for (const element of candidates) {
     const text = normalizedText(element);
     if (!isSafeNavigationControl(element)) {
-      debugLog("candidate-rejected", { label: text, reason: "unsafe-control" });
+      debugLog("candidate-rejected", { tag: element.tagName, reason: "unsafe-control" });
       continue;
     }
     if (isExcludedByUserSelector(element, document)) {
-      debugLog("candidate-rejected", { label: text, reason: "user-excluded-selector" });
+      debugLog("candidate-rejected", { tag: element.tagName, reason: "user-excluded-selector" });
       continue;
     }
 
@@ -786,11 +818,11 @@ function findPaginationControl(direction) {
     const specificLabel = text.includes("page");
 
     if (!rel && !inPagination && !directionalMetadata && !specificLabel) {
-      debugLog("candidate-rejected", { label: text, reason: "no-pagination-context" });
+      debugLog("candidate-rejected", { tag: element.tagName, reason: "no-pagination-context" });
       continue;
     }
     if (!exactLabel && !symbolLabel && !rel && !directionalMetadata) {
-      debugLog("candidate-rejected", { label: text, reason: "no-directional-signal" });
+      debugLog("candidate-rejected", { tag: element.tagName, reason: "no-directional-signal" });
       continue;
     }
 
@@ -802,13 +834,13 @@ function findPaginationControl(direction) {
     if (directionalMetadata) score += 25;
     if (element.tagName === "A" && element.getAttribute("href")) score += 10;
     const accepted = score >= threshold;
-    debugLog("candidate-scored", { label: text, tag: element.tagName, score, threshold, accepted });
+    debugLog("candidate-scored", { tag: element.tagName, score, threshold, accepted });
     if (accepted) scored.push({ element, score });
   }
 
   scored.sort((a, b) => b.score - a.score);
   const selected = scored[0]?.element ?? null;
-  debugLog(selected ? "control-selected" : "no-control-selected", selected ? { label: normalizedText(selected), tag: selected.tagName } : {});
+  debugLog(selected ? "control-selected" : "no-control-selected", selected ? { tag: selected.tagName, method: "automatic" } : {});
   return selected;
 }
 
@@ -858,7 +890,7 @@ function showNativeToast(message, duration) {
     }
     return applyMessage();
   } catch (error) {
-    debugLog("native-toast-unavailable", { message: String(error) });
+    debugLog("native-toast-unavailable", { errorName: error?.name || "Error" });
     return false;
   }
 }
@@ -930,7 +962,7 @@ function navigateHashTarget(tab, targetUrl, mode) {
   try {
     contentWindow.location.hash = target.hash;
   } catch (error) {
-    debugLog("hash-navigation-failed", { message: String(error) });
+    debugLog("hash-navigation-failed", { errorName: error?.name || "Error" });
     return false;
   }
   if (mode === "allow") {
@@ -1055,7 +1087,7 @@ function navigate(tab, url) {
       }
     }
   } catch (error) {
-    debugLog("loadURI-failed", { message: String(error) });
+    debugLog("loadURI-failed", { errorName: error?.name || "Error" });
   }
 
   try {
@@ -1070,7 +1102,7 @@ function navigate(tab, url) {
       }
     }
   } catch (error) {
-    debugLog("fixup-navigation-failed", { message: String(error) });
+    debugLog("fixup-navigation-failed", { errorName: error?.name || "Error" });
   }
   return false;
 }
@@ -1079,7 +1111,7 @@ function jumpToPage() {
   try {
     jumpToPageInternal();
   } catch (error) {
-    debugLog("jump-to-page-failed-safely", { message: String(error) });
+    debugLog("jump-to-page-failed-safely", { errorName: error?.name || "Error" });
     showToast("Jump failed safely; see local diagnostics");
   }
 }
@@ -1109,7 +1141,7 @@ function jumpToPageInternal() {
   try {
     accepted = Services.prompt.prompt(window, "Zen Page Skip", "Enter the page number:", input, null, null);
   } catch (error) {
-    debugLog("page-prompt-failed", { message: String(error) });
+    debugLog("page-prompt-failed", { errorName: error?.name || "Error" });
     showToast("Page-number prompt unavailable");
     return;
   }
@@ -1145,7 +1177,7 @@ function jump(direction) {
   try {
     jumpInternal(direction);
   } catch (error) {
-    debugLog("navigation-failed-safely", { direction, message: String(error) });
+    debugLog("navigation-failed-safely", { direction: direction === 1 ? "next" : "previous", errorName: error?.name || "Error" });
     showToast("Pagination failed safely; see local diagnostics");
   }
 }
@@ -1162,7 +1194,7 @@ function jumpInternal(direction) {
   }
 
   if (isSiteDisabled(url)) {
-    debugLog("navigation-aborted", { reason: "site-disabled", host: new URL(url).hostname });
+    debugLog("navigation-aborted", { reason: "site-disabled" });
     showToast("Zen Page Skip disabled on this site");
     return;
   }
@@ -1182,7 +1214,7 @@ function jumpInternal(direction) {
         showToast("Navigation cancelled");
         return;
       }
-      debugLog("head-rel-navigation", { target: new URL(relUrl).origin + new URL(relUrl).pathname });
+      debugLog("head-rel-navigation", { method: "document-rel" });
       if (!navigate(tab, relUrl)) {
         if (!lastNavigationWasHash) showToast("Navigation unavailable in this browser");
         return;
@@ -1231,7 +1263,7 @@ function jumpInternal(direction) {
         showToast(direction === 1 ? "Going to next page" : "Going to previous page");
       }
     } catch (error) {
-      debugLog("control-click-failed", { message: String(error) });
+      debugLog("control-click-failed", { errorName: error?.name || "Error" });
       showToast("Pagination control could not be activated");
     }
     return;
@@ -1251,7 +1283,7 @@ function jumpInternal(direction) {
       showToast("Navigation cancelled");
       return;
     }
-    debugLog("url-fallback", { target: new URL(nextUrl).origin + new URL(nextUrl).pathname });
+    debugLog("url-fallback", { method: "numbered-url" });
     if (!navigate(tab, nextUrl)) {
       if (!lastNavigationWasHash) showToast("Navigation unavailable in this browser");
       return;
