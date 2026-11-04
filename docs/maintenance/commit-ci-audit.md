@@ -160,3 +160,9 @@ No red result was confirmed from the status data retrieved during setup.
 
 
 | `e0c22d28a4738dd158797f45008b52c50fa260e9` | test: keep compatibility matrix claims explicit (#30) | green | 2026-11-04 | [41833389942](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41833389942) |
+
+
+| `86f464d780a2c4e369d534e1666500e68a8fb10d` | fix: match site rules for trailing-dot hosts (#38) | green | 2026-11-04 | [41833542900](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41833542900) |
+| `901fe31d1371612e9c851015fcfa625f2ca6119e` | feat: explain pagination decisions without navigating (#31) | red | 2026-11-04 | [41833762896](https://github.com/SakibShahariar/zen-page-skip/actions/runs/41833762896) |
+
+- `901fe31d1371612e9c851015fcfa625f2ca6119e`: the explainer test expected `../page/2` to resolve from the wrong directory. Relative to `/archive/page/1`, the actual destination is `/archive/page/2`; corrected the assertion in this commit.

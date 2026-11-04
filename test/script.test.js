@@ -1224,7 +1224,7 @@ test("explains the exact rel-pagination destination without navigating",()=>{
   const result=vm.runInContext("explainPagination(1)",context);
   assert.equal(result.success,true);
   assert.equal(result.method,"document-rel");
-  assert.equal(result.target,"https://example.test/page/2?sort=recent#top");
+  assert.equal(result.target,"https://example.test/archive/page/2?sort=recent#top");
   assert.equal(result.action,"navigate");
   assert.equal(browser.currentURI.spec,"https://example.test/archive/page/1");
 });
