@@ -913,3 +913,21 @@ test("imports an empty shortcut as an explicit disabled binding",()=>{
   assert.equal(result.success,true);
   assert.equal(saved,"");
 });
+
+
+test("detects pagination controls inserted or replaced after the initial page load",()=>{
+  const {context}=load();
+  let controls=[];
+  const document={querySelectorAll:()=>controls};
+  const browser={currentURI:{spec:"https://example.test/page/1"},contentDocument:document};
+  context.window.gBrowser={selectedTab:{linkedBrowser:browser}};
+  assert.equal(vm.runInContext("findPaginationControl(1)",context),null);
+
+  const lateNext=el({text:"Next",attrs:{href:"/page/2"},pagination:true});
+  controls=[lateNext];
+  assert.equal(vm.runInContext("findPaginationControl(1)",context),lateNext);
+
+  const replacement=el({text:"Next",attrs:{href:"/page/3"},pagination:true});
+  controls=[replacement];
+  assert.equal(vm.runInContext("findPaginationControl(1)",context),replacement);
+});
