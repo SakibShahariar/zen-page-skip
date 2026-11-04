@@ -647,7 +647,7 @@ test("normalizes safe HTTP URLs and rejects unsafe schemes or credentials",()=>{
   const result=vm.runInContext("({canonical:normalizeNavigationUrl('HTTPS://EXAMPLE.TEST:443/page/2'),relative:normalizeNavigationUrl('../page/2','https://example.test/archive/page/1'),javascript:normalizeNavigationUrl('javascript:alert(1)'),data:normalizeNavigationUrl('data:text/html,unsafe'),credentials:normalizeNavigationUrl('https://user:pass@example.test/page/2')})",context);
   assert.deepEqual(JSON.parse(JSON.stringify(result)),{
     canonical:"https://example.test/page/2",
-    relative:"https://example.test/page/2",
+    relative:"https://example.test/archive/page/2",
     javascript:null,
     data:null,
     credentials:null
