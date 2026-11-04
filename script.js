@@ -4,6 +4,7 @@ const PREF_BRANCH = "zen-page-skip.";
 const DEFAULT_NEXT_SHORTCUT = "Alt+]";
 const DEFAULT_PREVIOUS_SHORTCUT = "Alt+[";
 const DEFAULT_JUMP_SHORTCUT = "Alt+Shift+P";
+const DEFAULT_TOGGLE_SITE_SHORTCUT = "Alt+Shift+D";
 
 const NEXT_TEXT = ["next", "next page", "go to next page", "older", "older posts", "siguiente", "siguiente página", "suivant", "prochain", "weiter", "nächste", "próximo", "próxima", "下一页", "下页", "次へ", "次のページ", "다음", "다음 페이지", "التالي", "الصفحة التالية", "следующая", "следующий", "следующая страница", "następna", "następna strona", "volgende", "pagina successiva", "prossimo"];
 const PREVIOUS_TEXT = ["previous", "prev", "previous page", "go to previous page", "newer", "newer posts", "anterior", "página anterior", "précédent", "précédente", "zurück", "vorherige", "上一页", "前一页", "前へ", "前のページ", "이전", "이전 페이지", "السابق", "الصفحة السابقة", "предыдущая", "предыдущий", "предыдущая страница", "poprzednia", "poprzednia strona", "vorige", "pagina precedente", "precedente"];
@@ -160,7 +161,8 @@ function getShortcuts() {
   const shortcuts = {
     next: getShortcut("next-shortcut", DEFAULT_NEXT_SHORTCUT),
     previous: getShortcut("previous-shortcut", DEFAULT_PREVIOUS_SHORTCUT),
-    jump: getShortcut("jump-to-page-shortcut", DEFAULT_JUMP_SHORTCUT)
+    jump: getShortcut("jump-to-page-shortcut", DEFAULT_JUMP_SHORTCUT),
+    toggleSite: getShortcut("toggle-site-shortcut", DEFAULT_TOGGLE_SITE_SHORTCUT)
   };
   if (shortcutObserversRegistered) cachedShortcuts = shortcuts;
   return shortcuts;
@@ -168,7 +170,7 @@ function getShortcuts() {
 
 function observeShortcutPreferences() {
   if (typeof Services.prefs.addObserver !== "function") return;
-  const names = ["next-shortcut", "previous-shortcut", "jump-to-page-shortcut"].map((name) => PREF_BRANCH + name);
+  const names = ["next-shortcut", "previous-shortcut", "jump-to-page-shortcut", "toggle-site-shortcut"].map((name) => PREF_BRANCH + name);
   const observer = {
     observe(_subject, topic, data) {
       if (topic === "nsPref:changed" && names.includes(data)) {
@@ -243,6 +245,7 @@ const SETTINGS_SCHEMA = {
   "next-shortcut": { type: "string", defaultValue: "Alt+]" },
   "previous-shortcut": { type: "string", defaultValue: "Alt+[" },
   "jump-to-page-shortcut": { type: "string", defaultValue: "Alt+Shift+P" },
+  "toggle-site-shortcut": { type: "string", defaultValue: "Alt+Shift+D" },
   "disabled-sites": { type: "string", defaultValue: "" },
   "cooldown-ms": { type: "string", defaultValue: "400" },
   "toast-enabled": { type: "boolean", defaultValue: true },
@@ -1414,6 +1417,56 @@ function jumpInternal(direction) {
   showToast(direction === 1 ? "No next page found" : "No previous page found");
 }
 
+function toggleCurrentSite() {
+  const url = getCurrentUrl();
+  if (!url) {
+    showToast("No active page");
+    return false;
+  }
+  if (isSiteDisabled(url)) {
+    showToast("Remove this host from Disabled sites before toggling it");
+    return false;
+  }
+
+  let hostname;
+  let rules;
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+    const raw = Services.prefs.getStringPref(PREF_BRANCH + "site-rules", "");
+    if (raw.length > 8192) throw new Error("site-rules-too-large");
+    rules = raw ? JSON.parse(raw) : {};
+    if (!rules || typeof rules !== "object" || Array.isArray(rules)) throw new Error("invalid-site-rules");
+  } catch (error) {
+    debugLog("site-toggle-failed", { reason: "invalid-site-rules" });
+    showToast("Could not toggle this site's pagination; check its site rules");
+    return false;
+  }
+
+  const currentRule = getSiteRule(url);
+  const enabled = currentRule?.enabled === false;
+  const existing = rules[hostname];
+  if (existing !== undefined && (!existing || typeof existing !== "object" || Array.isArray(existing))) {
+    showToast("Could not toggle this site's pagination; check its site rules");
+    return false;
+  }
+  rules[hostname] = { ...(existing || {}), enabled };
+  const serialized = JSON.stringify(rules);
+  if (serialized.length > 8192) {
+    showToast("Site rules are full; remove an old rule before toggling this site");
+    return false;
+  }
+  try {
+    Services.prefs.setStringPref(PREF_BRANCH + "site-rules", serialized);
+    debugLog("site-toggle-changed", { reason: enabled ? "enabled" : "disabled" });
+    showToast(enabled ? "Pagination enabled for this site" : "Pagination paused for this site");
+    return true;
+  } catch (error) {
+    debugLog("site-toggle-failed", { reason: "preference-write-failed" });
+    showToast("Could not save this site's pagination state");
+    return false;
+  }
+}
+
 function isEditable(target) {
   if (target?.ownerDocument?.designMode?.toLowerCase() === "on" || target?.isContentEditable === true) return true;
   try {
@@ -1462,7 +1515,8 @@ function getShortcutWarnings() {
   const entries = [
     ["next-page", shortcuts.next],
     ["previous-page", shortcuts.previous],
-    ["jump-to-page", shortcuts.jump]
+    ["jump-to-page", shortcuts.jump],
+    ["toggle-current-site", shortcuts.toggleSite]
   ];
   const warnings = [];
   for (const entry of entries) {
@@ -1537,6 +1591,14 @@ function onKeyDown(event) {
     event.preventDefault();
     event.stopPropagation();
     jumpToPage();
+    return;
+  }
+
+  if (matches(event, shortcuts.toggleSite)) {
+    if (isCooldownActive()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    toggleCurrentSite();
   }
 }
 

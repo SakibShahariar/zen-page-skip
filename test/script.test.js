@@ -204,10 +204,10 @@ test("caches shortcut preferences and invalidates them on preference changes",()
   vm.runInContext("observeShortcutPreferences()",context);
   vm.runInContext("getShortcuts()",context);
   vm.runInContext("getShortcuts()",context);
-  assert.equal(reads,3);
+  assert.equal(reads,4);
   observer.observe(null,"nsPref:changed","zen-page-skip.next-shortcut");
   vm.runInContext("getShortcuts()",context);
-  assert.equal(reads,6);
+  assert.equal(reads,8);
 });
 
 test("keeps diagnostics disabled by default and exposes opt-in local logs",()=>{
@@ -1038,4 +1038,49 @@ test("requires import confirmation and leaves preferences unchanged when cancell
   assert.equal(promptText.includes("next-shortcut"),true);
   assert.equal(promptText.includes("Ctrl+Alt+Right"),false);
   assert.equal(promptText.includes("\n"),true);
+});
+
+
+test("toggles the current site's enabled rule without deleting its other settings",()=>{
+  const {context}=load();
+  let stored=JSON.stringify({"private.example":{nextSelector:"a.next",confidenceThreshold:90}});
+  context.window.gBrowser={selectedTab:{linkedBrowser:{currentURI:{spec:"https://private.example/page/1"}}}};
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?stored:fallback;
+  context.Services.prefs.setStringPref=(_name,value)=>{stored=value};
+  context.Services.prefs.getBoolPref=()=>false;
+  assert.equal(vm.runInContext("toggleCurrentSite()",context),true);
+  let rules=JSON.parse(stored);
+  assert.equal(rules["private.example"].enabled,false);
+  assert.equal(rules["private.example"].nextSelector,"a.next");
+  assert.equal(rules["private.example"].confidenceThreshold,90);
+
+  assert.equal(vm.runInContext("toggleCurrentSite()",context),true);
+  rules=JSON.parse(stored);
+  assert.equal(rules["private.example"].enabled,true);
+  assert.equal(rules["private.example"].nextSelector,"a.next");
+});
+
+test("creates an exact-host override when toggling a wildcard site rule",()=>{
+  const {context}=load();
+  let stored=JSON.stringify({"*.example.test":{enabled:false,nextSelector:"a.next"}});
+  context.window.gBrowser={selectedTab:{linkedBrowser:{currentURI:{spec:"https://shop.example.test/page/1"}}}};
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?stored:fallback;
+  context.Services.prefs.setStringPref=(_name,value)=>{stored=value};
+  context.Services.prefs.getBoolPref=()=>false;
+  assert.equal(vm.runInContext("toggleCurrentSite()",context),true);
+  const rules=JSON.parse(stored);
+  assert.equal(rules["*.example.test"].enabled,false);
+  assert.equal(rules["shop.example.test"].enabled,true);
+});
+
+test("does not alter malformed site rules or globally disabled hosts",()=>{
+  const {context}=load();
+  let writes=0;
+  context.window.gBrowser={selectedTab:{linkedBrowser:{currentURI:{spec:"https://private.example/page/1"}}}};
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("site-rules")?"{bad":fallback;
+  context.Services.prefs.setStringPref=()=>{writes++};
+  assert.equal(vm.runInContext("toggleCurrentSite()",context),false);
+  context.Services.prefs.getStringPref=(name,fallback)=>name.endsWith("disabled-sites")?"private.example":fallback;
+  assert.equal(vm.runInContext("toggleCurrentSite()",context),false);
+  assert.equal(writes,0);
 });
