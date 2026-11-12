@@ -54,6 +54,19 @@ test("uses rel next/prev links from the document head",()=>{
   assert.equal(vm.runInContext("findRelPaginationUrl(1, document, 'https://example.test/page/1')",Object.assign(context,{document:doc})),"https://example.test/page/2");
 });
 
+test("uses non-rendered head rel links for pagination",()=>{
+  const {context}=load();
+  const link={
+    tagName:"LINK",
+    getAttribute:(name)=>({rel:"next",href:"/page/3"})[name]??null,
+    hasAttribute:()=>false,
+    classList:{contains:()=>false},
+    getClientRects:()=>[]
+  };
+  const doc={baseURI:"https://jav.guru/page/2/",querySelectorAll:()=>[link]};
+  assert.equal(vm.runInContext("findRelPaginationUrl(1, document, 'https://jav.guru/page/2/')",Object.assign(context,{document:doc})),"https://jav.guru/page/3");
+});
+
 test("ignores generic unrelated links and chooses pagination-scoped controls",()=>{
   const unrelated=el({attrs:{href:"/account/next"}});
   const pager=el({attrs:{href:"/page/2"},pagination:true});

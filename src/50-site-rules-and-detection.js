@@ -66,7 +66,9 @@ function isDisabled(element) {
     element.getAttribute("aria-disabled") === "true" ||
     element.getAttribute("aria-current") === "page" ||
     element.classList?.contains("disabled") === true ||
-    (typeof element.getClientRects === "function" && element.getClientRects().length === 0);
+    // Head <link rel="next"> / <link rel="prev"> elements are not rendered,
+    // but are valid and preferred pagination metadata.
+    (element.tagName?.toLowerCase() !== "link" && typeof element.getClientRects === "function" && element.getClientRects().length === 0);
 }
 
 function isInPaginationContext(element) {
@@ -247,4 +249,3 @@ function findPaginationControl(direction) {
   debugLog(selected ? "control-selected" : "no-control-selected", selected ? { tag: selected.tagName, method: "automatic" } : {});
   return selected;
 }
-
