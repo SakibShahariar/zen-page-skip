@@ -12,7 +12,7 @@ Zen Page Skip is a Sine mod for Zen Browser. It provides shortcuts to move betwe
 1. Install [Sine](https://github.com/CosmoCreeper/Sine) in Zen Browser.
 2. Open **Settings → Sine Mods**.
 3. Add `SakibShahariar/zen-page-skip` as a mod source.
-4. Install **Zen Page Skip** and restart Zen if prompted.
+4. Install **Zen Page Skip** and restart Zen if prompted. If Sine asks for unsafe-script permission, enable `sine.allow-unsafe-js` in `about:config` and restart Zen.
 
 ## Shortcuts
 

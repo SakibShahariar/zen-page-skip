@@ -5,6 +5,12 @@ const path = require("node:path");
 const vm = require("node:vm");
 const source = fs.readFileSync(path.join(__dirname, "../script.js"), "utf8");
 
+test("Sine manifest loads the generated entry point in browser windows", () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, "../theme.json"), "utf8"));
+  assert.equal(manifest.id, "zen-page-skip");
+  assert.deepEqual(manifest.scripts?.["script.js"]?.include, ["chrome://browser/content/browser.xhtml"]);
+});
+
 function load(windowOverrides = {}) {
   const listeners = {};
   const context = {
@@ -1279,7 +1285,7 @@ test("explainer reports disabled sites and invalid directions without side effec
 test("distributable script matches the ordered source modules",()=>{
   const sourceDirectory=path.join(__dirname,"../src");
   const modules=fs.readdirSync(sourceDirectory)
-    .filter((name)=>/^\\d{2}-.+\\.js$/.test(name))
+    .filter((name)=>/^\d{2}-.+\.js$/.test(name))
     .sort();
   assert.equal(modules.length,10);
   const generated=modules.map((name)=>fs.readFileSync(path.join(sourceDirectory,name),"utf8")).join("");

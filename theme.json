@@ -1,9 +1,22 @@
 {
+  "id": "zen-page-skip",
   "name": "Zen Page Skip",
   "description": "Keyboard shortcuts to jump to the next or previous page in Zen Browser.",
   "version": "0.27.0",
   "author": "Sakib Shahariar Shimanto",
   "homepage": "https://github.com/SakibShahariar/zen-page-skip",
   "update_url": "https://raw.githubusercontent.com/SakibShahariar/zen-page-skip/main/theme.json",
-  "preferences": "https://raw.githubusercontent.com/SakibShahariar/zen-page-skip/main/preferences.json"
+  "preferences": "https://raw.githubusercontent.com/SakibShahariar/zen-page-skip/main/preferences.json",
+  "scripts": {
+    "script.js": {
+      "name": "Zen Page Skip",
+      "description": "Navigate webpage pagination with keyboard shortcuts.",
+      "include": [
+        "chrome://browser/content/browser.xhtml"
+      ]
+    }
+  },
+  "fork": [
+    "zen"
+  ]
 }
