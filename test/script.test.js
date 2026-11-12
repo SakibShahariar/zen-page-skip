@@ -3,12 +3,12 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const source = fs.readFileSync(path.join(__dirname, "../script.js"), "utf8");
+const source = fs.readFileSync(path.join(__dirname, "../script.uc.js"), "utf8");
 
 test("Sine manifest loads the generated entry point in browser windows", () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, "../theme.json"), "utf8"));
   assert.equal(manifest.id, "zen-page-skip");
-  assert.deepEqual(manifest.scripts?.["script.js"]?.include, ["chrome://browser/content/browser.xhtml"]);
+  assert.deepEqual(manifest.scripts?.["script.uc.js"]?.include, ["chrome://browser/content/browser.xhtml"]);
 });
 
 function load(windowOverrides = {}) {
@@ -1289,6 +1289,6 @@ test("distributable script matches the ordered source modules",()=>{
     .sort();
   assert.equal(modules.length,10);
   const generated=modules.map((name)=>fs.readFileSync(path.join(sourceDirectory,name),"utf8")).join("");
-  const entryPoint=fs.readFileSync(path.join(__dirname,"../script.js"),"utf8");
+  const entryPoint=fs.readFileSync(path.join(__dirname,"../script.uc.js"),"utf8");
   assert.equal(entryPoint,generated);
 });

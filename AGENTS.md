@@ -115,11 +115,11 @@ Classify every open issue into exactly one of these categories during triage. Re
 
 ## Source modules and generated entry point
 
-- `src/` contains the ordered implementation modules; `script.js` is the single generated entry point consumed by Sine.
-- Make implementation changes in `src/`, not directly in `script.js`.
+- `src/` contains the ordered implementation modules; `script.uc.js` is the single generated entry point consumed by Sine.
+- Make implementation changes in `src/`, not directly in `script.uc.js`.
 - Regenerate the entry point with `node scripts/build.js`; verify it with `node scripts/build.js --check`.
 - Module filenames must use a two-digit numeric prefix so lexical sorting preserves execution order.
-- Keep regression tests loading the generated `script.js` and verify that it exactly matches the ordered module concatenation.
+- Keep regression tests loading the generated `script.uc.js` and verify that it exactly matches the ordered module concatenation.
 - CI must run the build check before syntax and regression tests. Do not claim the refactor preserves live Zen/Sine behavior until a browser session validates it.
 
 

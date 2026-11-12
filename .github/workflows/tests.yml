@@ -26,7 +26,7 @@ jobs:
         run: node scripts/build.js --check
 
       - name: Check JavaScript syntax
-        run: node --check script.js
+        run: node --check script.uc.js
 
       - name: Run regression tests
         run: node --test

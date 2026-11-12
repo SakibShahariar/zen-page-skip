@@ -51,11 +51,11 @@ Requires Node.js. Edit the ordered source modules in `src/`, then regenerate the
 ```sh
 node scripts/build.js
 node scripts/build.js --check
-node --check script.js
+node --check script.uc.js
 node --test
 ```
 
-`script.js` is generated output; make implementation changes in `src/`. The numbered module filenames define concatenation order.
+`script.uc.js` is generated output; make implementation changes in `src/`. The numbered module filenames define concatenation order.
 
 GitHub Actions runs these checks on pushes and pull requests to `main`, using Node.js 22.
 

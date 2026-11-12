@@ -3,7 +3,7 @@ const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
 const sourceDirectory = path.join(root, "src");
-const entryPoint = path.join(root, "script.js");
+const entryPoint = path.join(root, "script.uc.js");
 const modules = fs.readdirSync(sourceDirectory)
   .filter((name) => /^\d{2}-.+\.js$/.test(name))
   .sort();
@@ -19,12 +19,12 @@ const generated = modules
 if (process.argv.includes("--check")) {
   const current = fs.readFileSync(entryPoint, "utf8");
   if (current !== generated) {
-    console.error("script.js is out of date. Run: node scripts/build.js");
+    console.error("script.uc.js is out of date. Run: node scripts/build.js");
     process.exitCode = 1;
   } else {
-    console.log("script.js matches the ordered source modules.");
+    console.log("script.uc.js matches the ordered source modules.");
   }
 } else {
   fs.writeFileSync(entryPoint, generated);
-  console.log("Generated script.js from " + modules.length + " source modules.");
+  console.log("Generated script.uc.js from " + modules.length + " source modules.");
 }
